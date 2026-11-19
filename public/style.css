@@ -23,7 +23,7 @@
   --font: Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-html, body { margin: 0; height: 100%; background: var(--neutral-100); font-family: var(--font); color: var(--text-primary); }
+html, body { letter-spacing: 0.007em; margin: 0; height: 100%; background: var(--neutral-100); font-family: var(--font); color: var(--text-primary); }
 body { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; }
 
 /* Celular: tela cheia. Desktop: moldura 393x852 (sem Dynamic Island) */
