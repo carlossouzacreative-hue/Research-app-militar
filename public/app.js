@@ -152,11 +152,10 @@
     else if (!noHist && cur) hist.push(cur);
     if (!window.SCREENS[id]) return;
     leave();
+    window.PROTO.from = cur;
     cur = id;
     curEnter = now();
-    app.innerHTML = window.SCREENS[id] + '<button class="done-pill" data-flow data-act="done">Terminei a tarefa</button>';
-    var sc = app.querySelector('.content');
-    if (sc) sc.scrollTop = 0;
+    render(false);
     log('screen_enter', Object.assign({ screen: id }, ctx()));
     if (run && !run.reached && id === run.task.success) {
       run.reached = true;
@@ -165,10 +164,30 @@
     }
   }
 
+  function render(keepScroll) {
+    var s = window.SCREENS[cur];
+    var html = typeof s === 'function' ? s() : s;
+    var oc = 0, os = 0;
+    if (keepScroll) {
+      var c0 = app.querySelector('.content'), s0 = app.querySelector('.sheet');
+      oc = c0 ? c0.scrollTop : 0;
+      os = s0 ? s0.scrollTop : 0;
+    }
+    app.innerHTML = html + '<button class="done-pill" data-flow data-act="done">Terminei a tarefa</button>';
+    var c1 = app.querySelector('.content'), s1 = app.querySelector('.sheet');
+    if (c1) c1.scrollTop = oc;
+    if (s1) s1.scrollTop = os;
+    if (window.PROTO.afterRender) window.PROTO.afterRender();
+  }
+  window.PROTO.log = function (t, x) { log(t, Object.assign({ screen: cur }, ctx(), x || {})); };
+  window.PROTO.go = function (id) { go(id); };
+  window.PROTO.rerender = function () { render(true); };
+
   function startTask() {
     var t = tasksOf(scenario)[state.ti];
     run = { task: t, t0: now(), reached: false };
     hist = [];
+    window.PROTO.onTaskStart(t);
     log('task_start', ctx());
     cl('set', 'tarefa', t.id);
     cl('event', t.id + '_inicio');
@@ -188,6 +207,7 @@
 
   function enterScenario(sc) {
     scenario = sc;
+    window.PROTO.resetScenario(sc);
     log('scenario_start', ctx());
     cl('set', 'cenario', sc);
     cl('event', 'cenario_' + sc + '_inicio');
@@ -250,7 +270,7 @@
     }
     if (el.closest('[data-flow]')) return;
     if (!cur) return;
-    var live = el.closest('[data-go],[data-tap]');
+    var live = el.closest('[data-go],[data-tap],[data-ui],[data-field]');
     var named = el.closest('[data-id]');
     var target = (live && live.getAttribute('data-id')) || (named && named.getAttribute('data-id')) || describe(el);
     log('tap', Object.assign({ screen: cur, target: target, dead: !live }, ctx()));
@@ -262,9 +282,35 @@
       });
       live.classList.add('sel');
     }
-    if (live.getAttribute('data-tap') === 'copy') toast('Código copiado');
+    if (live.getAttribute('data-tap') === 'copy') {
+      try {
+        if (navigator.clipboard) navigator.clipboard.writeText(live.getAttribute('data-copy') || '');
+      } catch (er) {}
+      toast('Código copiado');
+    }
+    var ui = live.getAttribute('data-ui');
+    if (ui) {
+      var parts = ui.split(':');
+      var fn = window.UI[parts[0]];
+      var r = fn ? fn(parts.slice(1).join(':')) : false;
+      if (typeof r === 'string') go(r);
+      else if (r) render(true);
+      return;
+    }
     var dest = live.getAttribute('data-go');
     if (dest) go(dest);
+  });
+  app.addEventListener('input', function (e) {
+    var f = e.target.closest && e.target.closest('[data-field]');
+    if (!f) return;
+    var k = f.getAttribute('data-field');
+    window.PROTO.form[k] = f.value;
+    if (window.PROTO.errors[k]) {
+      delete window.PROTO.errors[k];
+      var er = f.nextElementSibling;
+      while (er && !er.classList.contains('err') && er.tagName !== 'LABEL') er = er.nextElementSibling;
+      if (er && er.classList.contains('err')) er.remove();
+    }
   });
 
   // ---------- inicio ----------
