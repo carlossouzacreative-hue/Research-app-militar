@@ -1,31 +1,26 @@
-// TELAS DO PROTÓTIPO (média fidelidade) — Cenário A (agendar) e Cenário B (Pix).
+// TELAS DO PROTÓTIPO (média fidelidade), medidas a partir do Figma (frame 393x852).
 // Convenções para o registro dos testes:
 //   data-go="ID"     -> navega para a tela ID ("back" volta uma tela)
 //   data-tap="copy"  -> reage mas não navega (copiar)
-//   data-ui="a:arg"  -> ação interna (calendário, horário, enviar formulário, Pix)
+//   data-ui="a:arg"  -> ação interna (calendário, horário, formulário, Pix)
 //   data-field="x"   -> campo preenchível
 //   data-id="nome"   -> nome do elemento nos logs
+//   data-base="ID"   -> tela "de fundo" (sheets compartilham a base; usado só na animação)
 // Qualquer toque fora disso é registrado como "toque morto" (o que queremos medir).
 (function () {
   'use strict';
 
   var TODAY = '2026-11-19'; // "hoje" fictício do protótipo
+  var PROCESS_MS = 8000;    // tempo da "emissão em processo" depois do pagamento
   var MESES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
-  var PIX_CODE = '00020126580014br.gov.bcb.pix0136exercito-cdi-ficticio-5204000053039865406' + '60.00' + '5802BR6304A1B2';
+  var PIX_CODE = '00020126580014br.gov.bcb.pix0136exercito-cdi-ficticio-520400005303986540560.005802BR6304A1B2';
   var DEFAULT_BOOKING = { data: '2026-11-25', hora: '16:00', unidade: 'Unidade Centro', municipio: 'Itajaí', motivo: 'Emissão de documento' };
 
   var P = (window.PROTO = {
-    sc: null,
-    form: {},
-    errors: {},
-    ui: { cal: false, month: null },
-    booking: null,
-    pix: { status: 'none', t0: 0 },
-    from: null,
-    sheetBase: null,
-    log: function () {},
-    go: function () {},
-    rerender: function () {}
+    sc: null, form: {}, errors: {}, ui: { pop: null, month: null }, booking: null,
+    pix: { status: 'none', t0: 0, paidAt: 0, n: 0 },
+    from: null, sheetBase: null,
+    log: function () {}, go: function () {}, rerender: function () {}
   });
 
   // ---------- utilidades ----------
@@ -34,481 +29,435 @@
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
     });
   }
-  function br(iso) {
-    var p = iso.split('-');
-    return p[2] + '/' + p[1] + '/' + p[0];
-  }
-  function pad(n) {
-    return (n < 10 ? '0' : '') + n;
-  }
-  function iso(y, m, d) {
-    return y + '-' + pad(m + 1) + '-' + pad(d);
-  }
-  function dow(isoStr) {
-    var p = isoStr.split('-');
-    return new Date(+p[0], +p[1] - 1, +p[2]).getDay();
-  }
-  function selectable(isoStr) {
-    var d = dow(isoStr);
-    return isoStr > TODAY && d !== 0 && d !== 6; // sem passado, sábado ou domingo
-  }
+  function br(iso) { var p = iso.split('-'); return p[2] + '/' + p[1] + '/' + p[0]; }
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  function iso(y, m, d) { return y + '-' + pad(m + 1) + '-' + pad(d); }
+  function dow(s) { var p = s.split('-'); return new Date(+p[0], +p[1] - 1, +p[2]).getDay(); }
+  function selectable(s) { var d = dow(s); return s > TODAY && d !== 0 && d !== 6; } // sem passado, sábado ou domingo
   var SLOTS_AM = ['07:00', '08:00', '09:00', '10:00', '11:00', '12:00', '13:00'];
   var SLOTS_PM = ['14:00', '15:00', '16:00', '17:00', '18:00'];
-  function taken(isoStr, hhmm) {
-    // alguns horários já ocupados, sempre os mesmos para o mesmo dia
-    var h = 0;
-    var s = isoStr + hhmm;
-    for (var i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) % 997;
-    return h % 3 === 0;
+  function taken(s, h) { // alguns horários "já agendados", sempre os mesmos para o mesmo dia
+    var x = 0, k = s + h;
+    for (var i = 0; i < k.length; i++) x = (x * 31 + k.charCodeAt(i)) % 997;
+    return x % 3 === 0;
+  }
+  function bookingData() { return P.booking || DEFAULT_BOOKING; }
+  function ready() { return P.pix.status === 'paid' && Date.now() - P.pix.paidAt >= PROCESS_MS; }
+  function docState() {
+    if (P.pix.status === 'paid') return ready() ? 'ready' : 'proc';
+    if (P.pix.status === 'open') return 'open';
+    return 'avail';
   }
 
   // ---------- peças ----------
   function targets() {
-    if (P.sc === 'B') return { home: 'B01', docs: P.pix.status === 'open' ? 'B03' : 'B02', agenda: 'A08', perfil: 'A14' };
+    if (P.sc === 'B') {
+      var d = { avail: 'B02', open: 'B03', proc: 'B09', ready: 'B10' }[docState()];
+      return { home: 'B01', docs: d, agenda: 'A08', perfil: 'A14' };
+    }
     var has = !!P.booking;
     return { home: has ? 'A07' : 'A02', docs: has ? 'A12' : 'A13', agenda: has ? 'A09' : 'A08', perfil: 'A14' };
   }
   function tabbar(active) {
     var t = targets();
     var items = [['home', 'Meu processo'], ['docs', 'Documentos'], ['agenda', 'Agendamento'], ['perfil', 'Perfil']];
-    return (
-      '<nav class="tabbar">' +
-      items
-        .map(function (it) {
-          return '<div class="tab' + (active === it[0] ? ' on' : '') + '" data-go="' + t[it[0]] + '" data-id="tab_' + it[0] + '">' + it[1] + '</div>';
-        })
-        .join('') +
-      '</nav>'
-    );
+    return '<nav class="tabbar">' + items.map(function (it) {
+      return '<div class="tab' + (active === it[0] ? ' on' : '') + '" data-go="' + t[it[0]] + '" data-id="tab_' + it[0] + '"><i></i>' + it[1] + '</div>';
+    }).join('') + '</nav>';
   }
-  function screen(inner, fixed, cls) {
-    return '<div class="screen' + (cls ? ' ' + cls : '') + '"><div class="content"><div class="spacer-top"></div>' + inner + '</div>' + (fixed || '') + '</div>';
+  function screen(base, inner, fixed, cls) {
+    return '<div class="screen' + (cls ? ' ' + cls : '') + '" data-base="' + base + '"><div class="content">' + inner + '</div>' + (fixed || '') + '</div>';
   }
-  function topbar(title) {
-    return '<div class="topbar"><div class="back" data-go="back" data-id="voltar">‹</div><h1>' + title + '</h1></div>';
+  function sheet(inner, dimGo, cls) {
+    return '<div class="sheet-dim"' + (dimGo ? ' data-go="' + dimGo + '" data-id="fundo_escuro"' : '') + '></div><div class="sheet ' + (cls || '') + '"><div class="handle"></div>' + inner + '</div>';
   }
-  function sheet(inner, dimGo) {
-    return '<div class="sheet-dim"' + (dimGo ? ' data-go="' + dimGo + '" data-id="fundo_escuro"' : '') + '></div><div class="sheet">' + inner + '</div>';
+  function at(top, html, cls, style) {
+    return '<div class="abs ' + (cls || '') + '" style="top:' + top + 'px;' + (style || '') + '">' + html + '</div>';
   }
-  function kv(k, v) {
-    return '<div class="kv"><span class="muted">' + k + '</span><span>' + v + '</span></div>';
+  function ui(label, id, action, cls, style) {
+    return '<div class="btn ' + (cls || '') + '" data-ui="' + action + '" data-id="' + id + '"' + (style ? ' style="' + style + '"' : '') + '>' + label + '</div>';
   }
-  function dis(label, id) {
-    return '<div class="btn disabled" data-id="' + id + '">' + label + '</div>';
+  function go(label, id, dest, cls, style) {
+    return '<div class="btn ' + (cls || '') + '" data-go="' + dest + '" data-id="' + id + '"' + (style ? ' style="' + style + '"' : '') + '>' + label + '</div>';
   }
-  function stepper() {
-    return (
-      '<h2>Onde estou?</h2><div class="stepper">' +
-      '<div class="step done"><i></i><span>Alistamento</span></div>' +
-      '<div class="step now"><i></i><span>Comparecer à junta</span></div>' +
-      '<div class="step"><i></i><span>Dispensado</span></div></div>'
-    );
+  function dead(label, id, cls, style) {
+    return '<div class="btn ' + (cls || '') + '" data-id="' + id + '"' + (style ? ' style="' + style + '"' : '') + '>' + label + '</div>';
   }
-  function activity(extra) {
-    return (
-      '<h2>Atividade recente</h2>' +
-      (extra || '') +
-      '<div class="card"><div class="row"><b>Conta gov.br verificada</b><span class="tag">Online</span></div><p class="info">12/11/2026</p></div>'
-    );
+  function link44(label, id, dest) {
+    return '<span class="link link44" data-go="' + dest + '" data-id="' + id + '">' + label + '</span>';
   }
-  function bookingData() {
-    return P.booking || DEFAULT_BOOKING;
+  function tag(t) { return '<span class="tag">' + t + '</span>'; }
+  function check(sz) {
+    return '<svg width="' + (sz || 40) + '" height="' + (sz || 40) + '" viewBox="0 0 40 40" fill="none"><path d="M10 21l7 7 13-15" stroke="#555" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   }
-  function needLink() {
-    return '<span class="link link44" data-go="A04" data-id="link_o_que_levar">O que preciso levar?</span>';
+  function topbar(title, back) {
+    return '<div class="topbar">' + (back === false ? '' : '<div class="back" data-go="back" data-id="voltar">&lt;</div>') + '<h2>' + title + '</h2></div>';
   }
+  var H = function (t, s) { return '<' + (s || 'h1') + ' style="margin-left:24px;margin-right:24px">' + t + '</' + (s || 'h1') + '>'; };
 
-  // ---------- conteúdo das telas base ----------
+  // ---------- Início ----------
+  function sections(act) {
+    return '<h3 style="margin:24px 17px 0">Onde estou?</h3>' +
+      '<div class="stepper"><div class="ln"></div><div class="st"><i></i>Alistamento</div><div class="st"><i></i>Comparecer à junta</div><div class="st on"><i></i>Dispensado</div></div>' +
+      '<h3 style="margin:24px 17px 0">Atividade recente</h3>' +
+      '<div class="card line" style="margin:8px 16px 0;padding:15px 16px;height:73px">' + act + '</div>';
+  }
+  function act(t, a, b) {
+    return '<div style="font:400 16px/19px Inter,system-ui,sans-serif;color:var(--text-primary)">' + t + '</div><div class="label" style="margin-top:5px;line-height:17px;display:flex;gap:12px"><span>' + a + '</span><span>' + b + '</span></div>';
+  }
   function homeA(withBooking) {
     var b = bookingData();
-    return (
-      '<h1 data-id="saudacao">Olá, Rafael!</h1>' +
-      '<h2>Status</h2>' +
-      '<div class="card" data-id="card_status"><b>Rafael Almeida Nogueira</b><p><span class="tag">CDI indisponível online</span></p>' +
-      dis('Emitir CDI', 'btn_emitir_cdi_desabilitado') +
-      '<p class="info" style="margin-top:12px">Não é possível emitir online agora. ' + needLink() + '</p>' +
-      (withBooking
-        ? '<div class="btn" data-go="A09" data-id="btn_ver_agendamento">Ver agendamento</div>'
-        : '<div class="btn" data-go="A03" data-id="btn_realizar_agendamento">Realizar agendamento</div>') +
+    return H('Olá, Rafael!') + '<h2 style="margin:4px 24px 0">Status</h2>' +
+      '<div class="card" style="margin-top:8px"><h3 data-id="nome">Rafael Almeida Nogueira</h3>' +
+      '<div style="display:flex;margin-top:14px">' + tag('CDI indisponível online') + '</div>' +
+      dead('Emitir CDI', 'btn_emitir_cdi_desabilitado', 'disabled', 'margin-top:8px') +
+      '<p class="cap" style="margin:4px 0 0">A emissão online de documentos está indisponível. Para obter o CDI, agende um atendimento na Junta Militar ' + link44('O que preciso levar?', 'link_o_que_levar', 'A04') + '</p>' +
+      '<div class="divider" style="margin-top:18px"></div>' +
+      (withBooking ? go('Ver agendamento', 'btn_ver_agendamento', 'A09', '', 'margin-top:22px') : go('Realizar agendamento', 'btn_realizar_agendamento', 'A03', '', 'margin-top:22px')) +
       '</div>' +
-      stepper() +
-      activity(
-        withBooking
-          ? '<div class="card"><div class="row"><b>Agendamento</b><span class="tag">Junta militar</span></div><p class="info">' + br(b.data) + '</p></div>'
-          : ''
-      )
-    );
+      sections(withBooking ? act('Agendamento', br(b.data), 'Junta militar') : act('Conta gov.br verificada', '12/11/2026', 'Online'));
   }
+  function homeB() {
+    var s = docState();
+    var open = s === 'avail' || s === 'ready';
+    var dest = s === 'ready' ? 'B11' : s === 'avail' ? 'B04' : 'B09';
+    var t = s === 'proc' ? 'Em processamento' : 'CDI disponível para emitir';
+    return H('Olá, Rafael!') + '<h2 style="margin:4px 24px 0">Status</h2>' +
+      '<div class="card" style="margin-top:8px"><h3 data-id="nome">Rafael Almeida Nogueira</h3><p class="body sec">Dispensado de incorporação</p>' +
+      '<div style="display:flex;margin-top:4px">' + tag(t) + '</div>' +
+      (open ? go('Emitir CDI', 'btn_emitir_cdi', dest, '', 'margin-top:12px') : dead('Emitir CDI', 'btn_emitir_cdi_desabilitado', 'disabled', 'margin-top:12px')) +
+      '</div>' + sections(act('Conta gov.br verificada', '12/11/2026', 'Online'));
+  }
+
+  // ---------- Documentos ----------
+  function docCard(state) {
+    var t = { avail: 'Disponível para emitir', ready: 'Disponível para emitir', open: 'Pagamento em aberto', proc: 'Em processamento' }[state];
+    var sub = state === 'open' ? 'Você já gerou um Pix para este documento' : 'Emissão online com pagamento via Pix';
+    var b = state === 'avail' ? go('Emitir CDI', 'btn_emitir_cdi', 'B04', '', 'margin-top:12px')
+      : state === 'ready' ? go('Emitir CDI', 'btn_emitir_cdi', 'B11', '', 'margin-top:12px')
+      : state === 'open' ? go('Ver Pix em aberto', 'btn_ver_pix', 'B05', '', 'margin-top:12px')
+      : dead('Emitir CDI', 'btn_emitir_cdi_desabilitado', 'disabled', 'margin-top:12px');
+    var warn = state === 'open'
+      ? '<div class="divider" style="margin-top:12px"></div><p class="cap" style="margin:12px 0 0">Para evitar cobrança duplicada, não geramos outro Pix enquanto este estiver válido.</p>' : '';
+    return H('Meus documentos') + '<p class="label" style="margin:0 24px">Documentos do seu processo</p>' +
+      '<div class="card" style="margin-top:20px"><h3>Dispensa de incorporação</h3><p class="body sec">' + sub + '</p>' +
+      '<div style="display:flex;margin-top:4px">' + tag(t) + '</div>' + b + warn + '</div>';
+  }
+  function docsA(withBooking) {
+    return '<h2 style="margin:38px 24px 0">Documentos</h2>' +
+      '<div class="card" style="margin-top:8px"><h3>Dispensa de incorporação (CDI)</h3>' +
+      '<div style="display:flex;margin-top:14px">' + tag('CDI indisponível online') + '</div>' +
+      '<p class="body sec" style="margin:12px 0 0">Para obter o CDI é necessário realizar o agendamento e retirar presencialmente.</p>' +
+      '<div class="divider" style="margin-top:18px"></div>' +
+      (withBooking ? go('Ver agendamento', 'btn_ver_agendamento', 'A09', '', 'margin-top:16px') : go('Realizar agendamento', 'btn_realizar_agendamento', 'A03', '', 'margin-top:16px')) + '</div>';
+  }
+
+  // ---------- Agendamento ----------
   function agendaVazia() {
-    return (
-      '<h1>Agendamento</h1><div class="empty"><p><b>Você ainda não possui agendamentos</b></p>' +
-      (P.sc === 'B'
-        ? '<div class="btn" data-id="btn_realizar_agendamento">Realizar agendamento</div>'
-        : '<div class="btn" data-go="A03" data-id="btn_realizar_agendamento">Realizar agendamento</div>') +
-      '</div>'
-    );
+    return '<div class="empty-c" style="margin-top:252px"></div>' +
+      '<p class="body c" style="text-align:center;margin-top:16px">Você ainda não possui agendamentos</p>' +
+      (P.sc === 'B' ? dead('Realizar agendamento', 'btn_realizar_agendamento', '', 'margin:20px 31px 0;width:auto') : go('Realizar agendamento', 'btn_realizar_agendamento', 'A03', '', 'margin:20px 31px 0;width:auto'));
   }
   function agendaCheia() {
     var b = bookingData();
-    return (
-      '<h1>Agendamento</h1>' +
-      '<h2>Próximo agendamento</h2>' +
-      '<div class="card" data-id="card_proximo"><b>Junta militar</b>' +
-      kv('Horário', b.hora) + kv('Data', br(b.data)) + kv('Local', esc(b.unidade) + ', ' + esc(b.municipio)) +
-      '<div class="btn secondary" data-go="A03" data-id="btn_novo_agendamento">Novo agendamento</div></div>' +
-      '<h2>Histórico</h2>' +
-      '<div class="card"><div class="row"><b>Junta militar • 12/07/2026</b><span class="link link44" data-go="A10" data-id="btn_expandir">Expandir</span></div></div>'
-    );
-  }
-  function docs(withBooking) {
-    return (
-      '<h1>Meus documentos</h1>' +
-      '<div class="card" data-id="card_cdi"><div class="row"><b>CDI</b><span class="tag">Indisponível online</span></div>' +
-      '<p class="info">A emissão online não está disponível. Procure um atendimento presencial.</p>' +
-      (withBooking
-        ? '<div class="btn" data-go="A09" data-id="btn_ver_agendamento">Ver agendamento</div>'
-        : '<div class="btn" data-go="A03" data-id="btn_realizar_agendamento">Realizar agendamento</div>') +
-      '</div>'
-    );
-  }
-  function perfil() {
-    var pay = P.sc === 'B' ? 'B09' : 'A16';
-    return (
-      '<h1>Perfil</h1>' +
-      '<div class="card"><b>Rafael Almeida Nogueira</b></div>' +
-      '<div class="menu"><div class="item" data-go="' + pay + '" data-id="item_pagamentos">Pagamentos <span>›</span></div>' +
-      '<div class="item" data-id="item_editar_perfil">Editar perfil <span>›</span></div></div>' +
-      '<h2>Preferências</h2>' +
-      '<div class="menu"><div class="item" data-id="item_configuracoes">Configurações <span>›</span></div>' +
-      '<div class="item" data-id="item_tema">Tema <span>›</span></div>' +
-      '<div class="item" data-id="item_termos">Termos e privacidade <span>›</span></div></div>' +
-      '<div class="btn secondary" data-id="btn_sair">Sair</div>'
-    );
-  }
-  function homeB() {
-    return (
-      '<h1 data-id="saudacao">Olá, Rafael!</h1>' +
-      '<h2>Status</h2>' +
-      '<div class="card" data-id="card_status"><b>Rafael Almeida Nogueira</b><p><span class="tag">CDI disponível para emitir</span></p>' +
-      '<div class="btn" data-go="B04" data-id="btn_emitir_cdi">Emitir CDI</div></div>' +
-      stepper() +
-      activity()
-    );
-  }
-  function docsB() {
-    return (
-      '<h1>Meus documentos</h1>' +
-      '<div class="card" data-id="card_cdi"><div class="row"><b>CDI</b><span class="tag">Disponível para emitir</span></div>' +
-      '<div class="btn" data-go="B04" data-id="btn_emitir_cdi">Emitir CDI</div></div>'
-    );
-  }
-  function docsPix() {
-    return (
-      '<h1>Meus documentos</h1>' +
-      '<div class="card" data-id="card_cdi"><div class="row"><b>CDI</b><span class="tag">Pagamento em aberto</span></div>' +
-      '<div class="btn" data-go="B05" data-id="btn_ver_pix">Ver Pix em aberto</div>' +
-      '<p class="info" style="margin-top:12px">Atenção: gerar outro Pix pode causar cobrança duplicada. Pague o Pix em aberto.</p></div>'
-    );
+    return '<h2 style="margin:38px 17px 0">Próximo agendamento</h2>' +
+      '<div class="card" style="margin-top:8px" data-id="card_proximo"><h3>Junta militar</h3>' +
+      '<div class="body" style="margin-top:2px;display:flex;gap:14px"><span>Horário: ' + b.hora + '</span><span>Data: ' + br(b.data) + '</span></div>' +
+      '<div class="label" style="margin-top:10px">' + esc(b.unidade) + ' &nbsp;|&nbsp; ' + esc(b.municipio) + '</div></div>' +
+      go('Novo agendamento', 'btn_novo_agendamento', 'A03', '', 'margin:8px 33px 0;width:auto') +
+      '<h3 style="margin:24px 17px 0">Histórico de agendamentos</h3>' +
+      '<div class="card line" style="margin:8px 17px 0;padding:11px 16px;display:flex;align-items:center;justify-content:space-between"><span class="body">Junta militar &nbsp;•&nbsp; 12/07/2026</span>' + link44('Expandir', 'btn_expandir', 'A10') + '</div>';
   }
 
-  // base de um bottom sheet = a tela de onde ele foi aberto
+  // ---------- Perfil e Pagamentos ----------
+  function perfil() {
+    var pay = P.sc === 'B' ? 'B14' : 'A16';
+    var row = function (t, id, d) {
+      return '<div class="menu-row"' + (d ? ' data-go="' + d + '"' : '') + ' data-id="' + id + '"><span>' + t + '</span><i></i></div>';
+    };
+    return '<h2 style="margin:38px 24px 0">Perfil</h2>' +
+      '<div class="card" style="margin-top:8px;height:191px"><div style="display:flex;align-items:center;gap:12px;height:44px"><div style="width:36px;height:36px;border-radius:50%;background:var(--neutral-200);flex:none"></div><div><h3>Rafael Almeida Nogueira</h3><div class="label">Rafael@email.com</div></div></div>' +
+      '<div class="divider" style="margin-top:18px"></div><div style="margin-top:16px">' + row('Pagamentos', 'item_pagamentos', pay) + row('Editar perfil', 'item_editar_perfil') + '</div></div>' +
+      '<div class="card" style="margin-top:8px;padding-bottom:24px"><h3>Preferências</h3>' + row('Configurações', 'item_configuracoes') + row('Tema', 'item_tema') + row('Termos e privacidade', 'item_termos') + '</div>' +
+      '<div class="card line" style="margin-top:40px;padding:6px 16px">' + '<div class="menu-row" data-id="btn_sair"><span>Sair</span><i></i></div></div>';
+  }
+  function pagamentos(first) {
+    var card = function (tg, note, btnHtml, cap) {
+      return '<div class="card" style="margin-top:' + (cap === 'first' ? 26 : 20) + 'px"><h3>Dispensa de incorporação (CDI)</h3>' +
+        '<div class="label" style="margin-top:14px;color:var(--text-primary)">' + tg.date + ' &nbsp;|&nbsp; R$ 60,00</div>' +
+        '<div style="display:flex;gap:8px;align-items:center;margin-top:10px">' + tag(tg.t) + '<span class="label">' + note + '</span></div>' +
+        '<div class="divider" style="margin-top:22px"></div>' + btnHtml + (cap && cap !== 'first' ? '<p class="cap" style="margin:8px 0 0">' + cap + '</p>' : '') + '</div>';
+    };
+    var back = '<div class="abs" style="top:calc(var(--sb) + 1px)"><div class="pill-back" data-go="back" data-id="voltar"><i></i>Voltar</div></div>';
+    var one = P.sc === 'B'
+      ? card({ date: '12/07/2026', t: 'Em processamento' }, 'Disponível em breve', dead('Emitir comprovante', 'btn_emitir_comprovante', '', 'margin-top:15px'), 'first')
+      : card({ date: '12/07/2026', t: 'Pago' }, 'Comprovante disponível', dead('Emitir comprovante', 'btn_emitir_comprovante', '', 'margin-top:15px'), 'first');
+    var two = card({ date: '05/05/2026', t: 'Expirado' }, 'Nenhuma cobrança feita', dead('Gerar novo pix', 'btn_gerar_novo_pix_desabilitado', 'disabled', 'margin-top:15px'), 'Pix indisponível: O documento já foi pago');
+    return back + '<h2 style="margin:38px 24px 0">Pagamentos</h2><h3 style="margin:24px 17px 0">Histórico de pagamentos</h3>' + one + two;
+  }
+
+  // ---------- bases (telas que também servem de fundo de sheets) ----------
   var BASES = {
-    A02: function () { return screen(homeA(false), tabbar('home')); },
-    A07: function () { return screen(homeA(true), tabbar('home')); },
-    A08: function () { return screen(agendaVazia(), tabbar('agenda')); },
-    A09: function () { return screen(agendaCheia(), tabbar('agenda')); },
-    A12: function () { return screen(docs(true), tabbar('docs')); },
-    A13: function () { return screen(docs(false), tabbar('docs')); },
-    B01: function () { return screen(homeB(), tabbar('home')); },
-    B02: function () { return screen(docsB(), tabbar('docs')); }
+    A02: function () { return screen('A02', homeA(false), tabbar('home')); },
+    A07: function () { return screen('A07', homeA(true), tabbar('home')); },
+    A08: function () { return screen('A08', agendaVazia(), tabbar('agenda')); },
+    A09: function () { return screen('A09', agendaCheia(), tabbar('agenda')); },
+    A12: function () { return screen('A12', docsA(true), tabbar('docs')); },
+    A13: function () { return screen('A13', docsA(false), tabbar('docs')); },
+    B01: function () { return screen('B01', homeB(), tabbar('home')); },
+    B02: function () { return screen('B02', docCard('avail'), tabbar('docs')); },
+    B10: function () { return screen('B10', docCard('ready'), tabbar('docs')); }
   };
   function withSheet(baseId, sheetHtml) {
-    var base = (BASES[baseId] || BASES.A02)();
+    var base = BASES[baseId]().replace('data-base="' + baseId + '"', 'data-base="' + baseId + '" data-sheet="1"');
     return base.replace(/<\/div>$/, sheetHtml + '</div>');
   }
-  function baseFor(defaultId) {
+  function baseFor(def) {
     if (BASES[P.from]) P.sheetBase = P.from;
-    var id = P.sheetBase && BASES[P.sheetBase] ? P.sheetBase : defaultId;
-    // a base reflete o estado atual (ex.: já existe agendamento)
+    var id = P.sheetBase && BASES[P.sheetBase] ? P.sheetBase : def;
     if (id === 'A02' && P.booking) id = 'A07';
     if (id === 'A12' || id === 'A13') id = P.booking ? 'A12' : 'A13';
+    if (id === 'B02' || id === 'B10') id = ready() ? 'B10' : 'B02';
     return id;
   }
 
   // ---------- formulário de agendamento (A03) ----------
-  function err(k) {
-    return P.errors[k] ? '<div class="err" data-id="erro_' + k + '">' + P.errors[k] + '</div>' : '';
+  function fieldLabel(top, left, t) { return at(top, t, 'sub', 'left:' + left + 'px;white-space:nowrap'); }
+  function formSheet() {
+    var f = P.form, e = P.errors;
+    function opt(list, val) { return list.map(function (o) { return '<option' + (val === o ? ' selected' : '') + '>' + o + '</option>'; }).join(''); }
+    function sel(id, field, ph, list, top) {
+      return at(top, '<select class="inp' + (f[field] ? '' : ' ph') + (e[field] ? ' err' : '') + '" data-field="' + field + '" data-id="' + id + '"><option value="" disabled' + (f[field] ? '' : ' selected') + ' hidden>' + (e[field] || ph) + '</option>' + opt(list, f[field]) + '</select>', 'fld');
+    }
+    var html =
+      fieldLabel(42, 34, 'Município') +
+      at(65, '<input class="inp' + (e.municipio ? ' err' : '') + '" data-field="municipio" data-id="campo_municipio" list="munis" placeholder="' + (e.municipio || 'Itajaí') + '" autocomplete="off" value="' + esc(f.municipio) + '"><datalist id="munis"><option>Itajaí</option><option>Goiânia</option><option>Jataí</option><option>São Paulo</option><option>Rio de Janeiro</option></datalist>', 'fld') +
+      fieldLabel(114, 34, 'Motivo') + sel('campo_motivo', 'motivo', 'Emissão de documento', ['Emissão de documento', 'Regularização', 'Alistamento'], 137) +
+      fieldLabel(185, 34, 'Unidade') + sel('campo_unidade', 'unidade', 'Unidade Centro', ['Unidade Centro', 'Unidade Norte', 'Unidade Sul'], 208) +
+      fieldLabel(256, 34, 'Data') + fieldLabel(256, 183, 'Horários disponíveis') +
+      at(280, '<div class="inp sm' + (e.data ? ' err' : '') + '" data-ui="pop:cal" data-id="campo_data"><span class="ic"></span><span' + (f.data ? '' : ' class="dis"') + '>' + (f.data ? br(f.data) : (e.data || '00/00/0000')) + '</span></div>', '', 'left:31px;width:142px') +
+      at(280, '<div class="inp sm' + (e.hora ? ' err' : '') + '" data-ui="pop:slots" data-id="campo_horario"><span' + (f.hora ? '' : ' class="dis"') + ' style="white-space:nowrap">' + (f.hora || e.hora || 'Selecione o horário') + '</span></div>', '', 'left:183px;width:180px') +
+      at(329, '<span class="link link44" style="font:400 14px/17px var(--font)" data-go="A04" data-id="link_o_que_levar">O que preciso levar?</span>', '', 'left:31px') +
+      at(365, ui('Realizar agendamento', 'btn_realizar_agendamento', 'submit-book'), 'fld');
+    return html;
   }
   function calendar() {
     var m = P.ui.month || { y: 2026, m: 10 };
     var first = new Date(m.y, m.m, 1).getDay();
     var days = new Date(m.y, m.m + 1, 0).getDate();
     var cells = '';
-    for (var i = 0; i < first; i++) cells += '<span class="cal-empty"></span>';
+    for (var i = 0; i < first; i++) cells += '<span class="cal-e"></span>';
     for (var d = 1; d <= days; d++) {
-      var s = iso(m.y, m.m, d);
-      var ok = selectable(s);
-      cells +=
-        '<span class="cal-day' + (ok ? '' : ' off') + (P.form.data === s ? ' sel' : '') + '"' +
-        (ok ? ' data-ui="cal-pick:' + s + '" data-id="dia_' + s + '"' : ' data-id="dia_indisponivel"') + '>' + d + '</span>';
+      var s = iso(m.y, m.m, d), ok = selectable(s);
+      cells += '<span class="cal-d' + (ok ? '' : ' off') + (P.form.data === s ? ' sel' : '') + '"' + (ok ? ' data-ui="cal-pick:' + s + '" data-id="dia_' + s + '"' : ' data-id="dia_indisponivel"') + '>' + d + '</span>';
     }
-    var canPrev = m.y > 2026 || m.m > 10;
-    var canNext = m.y < 2027 || (m.y === 2027 && m.m < 1);
-    return (
-      '<div class="calendar" data-id="calendario"><div class="cal-head">' +
-      '<span class="cal-nav' + (canPrev ? '' : ' off') + '"' + (canPrev ? ' data-ui="cal-prev" data-id="mes_anterior"' : '') + '>‹</span>' +
-      '<b>' + MESES[m.m] + ' ' + m.y + '</b>' +
-      '<span class="cal-nav' + (canNext ? '' : ' off') + '"' + (canNext ? ' data-ui="cal-next" data-id="mes_seguinte"' : '') + '>›</span></div>' +
+    var canPrev = m.y > 2026 || m.m > 10, canNext = m.y < 2027 || (m.y === 2027 && m.m < 1);
+    return at(24,
+      '<div class="cal-head"><span class="cal-nav' + (canPrev ? '' : ' off') + '"' + (canPrev ? ' data-ui="cal-prev" data-id="mes_anterior"' : '') + '>‹</span><span>' + MESES[m.m] + ' ' + m.y + '</span><span class="cal-nav' + (canNext ? '' : ' off') + '"' + (canNext ? ' data-ui="cal-next" data-id="mes_seguinte"' : '') + '>›</span></div>' +
       '<div class="cal-grid cal-dow"><span>D</span><span>S</span><span>T</span><span>Q</span><span>Q</span><span>S</span><span>S</span></div>' +
-      '<div class="cal-grid">' + cells + '</div></div>'
-    );
+      '<div class="cal-grid">' + cells + '</div><span class="cal-x" data-ui="pop:close" data-id="fechar_calendario">Fechar</span>', 'pop');
   }
-  function slotsHtml() {
-    if (!P.form.data) return '<p class="info">Escolha uma data para ver os horários.</p>';
-    function chip(h) {
+  function slotsPop() {
+    if (!P.form.data) {
+      return at(0, '<div class="opts"><div class="o" style="color:var(--text-secondary);border:0;height:auto;padding:12px;font-size:14px;line-height:20px" data-ui="pop:close" data-id="horario_sem_data">Escolha uma data primeiro.</div></div>', 'pop', 'left:183px;right:auto;width:180px;bottom:208px;top:auto');
+    }
+    function row(h) {
       var off = taken(P.form.data, h);
-      return '<span class="slot' + (off ? ' off' : '') + (P.form.hora === h ? ' sel' : '') + '"' +
-        (off ? ' data-id="horario_indisponivel"' : ' data-ui="slot:' + h + '" data-id="horario_' + h.replace(':', '') + '"') + '>' + h + '</span>';
+      return '<div class="o' + (off ? ' off' : '') + (P.form.hora === h ? ' sel' : '') + '"' + (off ? ' data-id="horario_indisponivel"' : ' data-ui="slot:' + h + '" data-id="horario_' + h.replace(':', '') + '"') + '>' + h + '</div>';
     }
-    return (
-      '<p class="caption">Manhã</p><div class="slots">' + SLOTS_AM.map(chip).join('') + '</div>' +
-      '<p class="caption">Tarde</p><div class="slots">' + SLOTS_PM.map(chip).join('') + '</div>'
-    );
-  }
-  function formSheet() {
-    var f = P.form;
-    function opt(list, val, ph) {
-      return '<option value="">' + ph + '</option>' + list.map(function (o) { return '<option' + (val === o ? ' selected' : '') + '>' + o + '</option>'; }).join('');
-    }
-    return sheet(
-      '<h2>Agendar atendimento</h2>' +
-        '<label class="lbl">Município</label>' +
-        '<input class="in" data-field="municipio" data-id="campo_municipio" list="munis" placeholder="Digite o município" autocomplete="off" value="' + esc(f.municipio) + '">' +
-        '<datalist id="munis"><option>Itajaí</option><option>Goiânia</option><option>Jataí</option><option>São Paulo</option><option>Rio de Janeiro</option></datalist>' + err('municipio') +
-        '<label class="lbl">Motivo</label>' +
-        '<select class="in" data-field="motivo" data-id="campo_motivo">' + opt(['Emissão de documento', 'Regularização', 'Alistamento'], f.motivo, 'Selecione o motivo') + '</select>' + err('motivo') +
-        '<label class="lbl">Unidade</label>' +
-        '<select class="in" data-field="unidade" data-id="campo_unidade">' + opt(['Unidade Centro', 'Unidade Norte', 'Unidade Sul'], f.unidade, 'Selecione a unidade') + '</select>' + err('unidade') +
-        '<label class="lbl">Data</label>' +
-        '<div class="in pick" data-ui="cal-toggle" data-id="campo_data">' + (f.data ? br(f.data) : '<span class="muted">Selecione a data</span>') + '</div>' +
-        (P.ui.cal ? calendar() : '') + err('data') +
-        '<label class="lbl">Horários disponíveis</label>' + slotsHtml() + err('hora') +
-        '<p class="need">' + needLink() + '</p>' +
-        '<div class="btn" data-ui="submit-book" data-id="btn_realizar_agendamento">Realizar agendamento</div>',
-      baseFor('A02')
-    );
+    return at(0, '<div class="opts"><div class="g">Manhã</div>' + SLOTS_AM.map(row).join('') + '<div class="g">Tarde</div>' + SLOTS_PM.map(row).join('') + '</div>', 'pop', 'left:183px;right:auto;width:180px;bottom:208px;top:auto');
   }
 
-  // ---------- Pix ----------
-  function pixSheet() {
-    return sheet(
-      '<h2>Pagar CDI com Pix</h2><p class="amount">R$ 60,00</p>' +
-        '<p class="info">Você gera o código Pix e paga no aplicativo do seu banco.</p>' +
-        '<div class="btn" data-ui="pix-gen" data-id="btn_gerar_pix">Gerar Pix</div>',
-      'back'
-    );
-  }
-  function timeLeft() {
-    var left = Math.max(0, (29 * 60 + 59) - Math.floor((Date.now() - P.pix.t0) / 1000));
-    return pad(Math.floor(left / 60)) + ':' + pad(left % 60);
-  }
-
+  // ---------- telas ----------
   window.SCREENS = {
-    // ---------- Cenário A ----------
+    // ===== Cenário A =====
     A01: function () {
-      return screen(
-        '<div class="login"><h1>Exército Brasileiro</h1><p class="info">Acesse com sua conta gov.br para continuar.</p>' +
-          '<div class="btn" data-go="A02" data-id="btn_entrar_govbr">Entrar com Gov.br</div></div>', '', 'center');
+      return screen('A01', '<div style="padding:0 24px"><h1 style="margin-top:210px">Exército Brasileiro</h1><p class="body sec" style="margin-top:8px">login</p>' +
+        go('Entrar com Gov.br', 'btn_entrar_govbr', 'A02', '', 'margin-top:24px') + '</div>');
     },
     A02: function () { return BASES.A02(); },
-    A03: function () { return withSheet(baseFor('A02'), formSheet()); },
+    A03: function () {
+      var b = baseFor('A02');
+      return withSheet(b, sheet(formSheet() + (P.ui.pop === 'cal' ? calendar() : '') + (P.ui.pop === 'slots' ? slotsPop() : ''), b));
+    },
     A04: function () {
       var b = baseFor('A02');
-      return withSheet(
-        b,
-        sheet(
-          '<h2>O que preciso levar?</h2>' +
-            '<div class="card"><b>Documento com foto</b><p class="info">RG ou CNH, original.</p></div>' +
-            '<div class="card"><b>Comprovante de alistamento</b><p class="info">Se tiver, leve o comprovante.</p></div>' +
-            '<div class="link link44" data-id="ver_detalhes">Ver detalhes</div>' +
-            '<div class="btn" data-go="back" data-id="btn_voltar">Voltar</div>',
-          'back'
-        )
-      );
+      return withSheet(b, sheet(
+        at(64, 'O que preciso levar?', 'h3 c', 'left:0;right:0') +
+        at(110, '<div class="ibox"><b></b><b></b><b></b></div>', '', 'left:50%;margin-left:-40px') +
+        at(221, 'Documento com foto<br>Comprovante de alistamento', 'label c', 'left:0;right:0;color:var(--text-primary);font-size:14px;line-height:20px') +
+        at(269, '<span class="link link44" style="font:400 14px/17px var(--font)" data-id="ver_detalhes">Ver detalhes</span>', 'c', 'left:0;right:0') +
+        at(360, go('Voltar', 'btn_voltar', 'back', 'secondary'), 'fld'), 'back'));
     },
     A06: function () {
-      return withSheet(
-        baseFor('A02'),
-        sheet('<h2 data-id="titulo_sucesso">Agendamento realizado com sucesso!</h2><div class="btn" data-go="A09" data-id="btn_ver_agendamentos">Ver agendamentos</div>')
-      );
+      return withSheet(baseFor('A02'), sheet(
+        at(119, '<div class="circ">' + check() + '</div>', '', 'left:0;right:0') +
+        at(262, 'Agendamento realizado com sucesso!', 'h3 c', 'left:60px;right:60px') +
+        at(362, go('Ver agendamentos', 'btn_ver_agendamentos', 'A09'), 'fld')));
     },
     A07: function () { return BASES.A07(); },
     A08: function () { return BASES.A08(); },
     A09: function () { return BASES.A09(); },
     A10: function () {
-      return withSheet(
-        'A09',
-        sheet(
-          '<h2>Junta militar • 12/07/2026</h2>' + kv('Data', '12/07/2026') + kv('Horário', '11:00') + kv('Motivo', 'Regularização') + kv('Status', 'Resolvido') +
-            '<div class="btn" data-go="back" data-id="btn_voltar">Voltar</div>',
-          'back'
-        )
-      );
+      return withSheet('A09', sheet(
+        at(45, 'Junta militar', 'h3 c', 'left:0;right:0') +
+        at(84, '<div class="card" style="margin:0;display:flex;flex-direction:column;gap:7px;line-height:24px"><div class="body"><b>Data:</b> 12/07/2026</div><div class="body"><b>Horário:</b> 11:00</div><div class="body"><b>Motivo:</b> Regularização</div><div class="body"><b>Status:</b> Resolvido</div></div>', 'fld') +
+        at(241, go('Voltar', 'btn_voltar', 'back', 'secondary'), 'fld'), 'back', 's366'));
     },
     A12: function () { return BASES.A12(); },
     A13: function () { return BASES.A13(); },
-    A14: function () { return screen(perfil(), tabbar('perfil')); },
-    A16: function () {
-      return screen(
-        topbar('Pagamentos') +
-          '<div class="card"><div class="row"><b>12/07/2026</b><span class="tag">Pago</span></div><p>R$ 60,00</p>' +
-          '<div class="btn secondary" data-id="btn_emitir_comprovante">Emitir comprovante</div></div>' +
-          '<div class="card"><div class="row"><b>05/05/2026</b><span class="tag">Expirado</span></div><p>R$ 60,00</p>' +
-          dis('Gerar novo Pix', 'btn_gerar_novo_pix_desabilitado') + '</div>',
-        tabbar('perfil')
-      );
-    },
+    A14: function () { return screen('A14', perfil(), tabbar('perfil')); },
+    A16: function () { return screen('A16', pagamentos(), tabbar('perfil')); },
 
-    // ---------- Cenário B ----------
+    // ===== Cenário B =====
     B01: function () { return BASES.B01(); },
     B02: function () { return BASES.B02(); },
-    B03: function () { return screen(docsPix(), tabbar('docs')); },
+    B03: function () { return screen('B03', docCard('open'), tabbar('docs')); },
     B04: function () {
       if (BASES[P.from]) P.sheetBase = P.from;
-      return withSheet(P.sheetBase === 'B02' ? 'B02' : 'B01', pixSheet());
+      var b = P.sheetBase === 'B01' ? 'B01' : 'B02';
+      return withSheet(b, sheet(
+        at(119, '<div class="circ" style="font-size:28px">◆</div>', '', 'left:0;right:0') +
+        at(224, 'Pagar CDI com Pix', 'body c', 'left:0;right:0') +
+        at(261, 'R$ 60,00', 'h3 c', 'left:0;right:0;font-weight:700') +
+        at(362, ui('Gerar Pix', 'btn_gerar_pix', 'pix-gen'), 'fld'), 'back'));
     },
     B05: function () {
-      return screen(
-        topbar('Pix gerado') +
-          '<p class="amount center-t">R$ 60,00</p>' +
-          '<div class="qr" data-id="qr"></div>' +
-          '<p class="center-t">Expira em <b id="pixtimer">' + timeLeft() + '</b></p>' +
-          '<p class="label">Pix copia e cola</p><div class="code" data-id="codigo_pix">' + PIX_CODE + '</div>' +
-          '<div class="btn" data-tap="copy" data-copy="' + PIX_CODE + '" data-id="btn_copiar_pix">Copiar código Pix</div>' +
-          '<p class="info" style="margin-top:12px">Pague no aplicativo do seu banco. Depois de pagar, toque em "Já paguei".</p>' +
-          '<div class="btn secondary" data-ui="pix-paid" data-id="btn_ja_paguei">Já paguei</div>',
-        '', ''
-      );
+      return screen('B05',
+        '<div style="height:0"></div>' + topbar('Pix gerado') +
+        '<div class="label c" style="text-align:center;margin-top:10px">Valor</div>' +
+        '<h1 style="text-align:center;margin-top:1px">R$ 60,00</h1>' +
+        '<div class="qr" data-id="qr"><svg viewBox="0 0 220 220"><path d="M0 0L220 220M220 0L0 220" stroke="#bdbdbd" stroke-width="1"/></svg><span>QR code</span></div>' +
+        '<div style="display:flex;margin:12px 33px 0"><span class="tag" style="width:100%;justify-content:center">Expira em <b id="pixtimer" style="font-weight:400;margin-left:4px">29:59</b></span></div>' +
+        '<div class="body sec" style="margin:22px 24px 0">Pix copia e cola</div>' +
+        '<div class="field" style="margin:2px 24px 0" data-id="codigo_pix"><span class="v">' + PIX_CODE + '</span></div>' +
+        '<div class="btn" data-tap="copy" data-copy="' + PIX_CODE + '" data-id="btn_copiar_pix" style="margin:12px 31px 0;width:auto">Copiar codigo Pix</div>' +
+        '<p class="label c" style="text-align:center;margin:24px 46px 0">Após pagar, a confirmação aparece nesta tela. Não pague duas vezes: use sempre o mesmo Pix.</p>' +
+        '<div class="btn secondary hard" data-ui="pix-paid" data-id="btn_ja_paguei" style="margin:20px 31px 0;width:auto">Já paguei</div>');
+    },
+    // confirmação em bottom sheet (usada a partir do 2º Pix, depois de expirar)
+    B05P: function () {
+      var base = window.SCREENS.B05().replace('data-base="B05"', 'data-base="B05" data-sheet="1"');
+      return base.replace(/<\/div>$/, sheet(
+        at(66, '<div class="circ">' + check() + '</div>', '', 'left:0;right:0') +
+        at(166, 'Pagamento recebido', 'h3 c', 'left:0;right:0') +
+        at(198, 'R$ 60,00', 'body c sec', 'left:0;right:0') +
+        at(307, go('Acompanhar', 'btn_acompanhar', 'B09'), 'fld') +
+        at(367, go('Voltar ao início', 'btn_voltar_inicio', 'B01', 'secondary'), 'fld')) + '</div>');
     },
     B06: function () {
-      return screen(
+      return screen('B06',
         topbar('Pix expirado') +
-          '<div class="empty"><p><b>Este Pix expirou</b></p><p class="info">Gere um novo Pix para concluir o pagamento.</p>' +
-          '<div class="btn" data-ui="pix-gen" data-id="btn_gerar_novo_pix">Gerar novo Pix</div>' +
-          '<div class="btn secondary" data-go="B02" data-id="btn_voltar_documentos">Voltar aos documentos</div></div>'
-      );
+        '<div class="circ big" style="margin-top:112px">!</div>' +
+        '<h3 style="text-align:center;margin-top:8px">Este Pix expirou</h3>' +
+        '<p class="label" style="text-align:center;margin:11px 0 0">Nenhuma cobrança foi feita.<br>Gere um novo Pix para continuar.</p>' +
+        ui('Gerar novo Pix', 'btn_gerar_novo_pix', 'pix-gen', '', 'margin:49px 31px 0;width:auto') +
+        go('Voltar aos documentos', 'btn_voltar_documentos', 'B02', 'secondary', 'margin:12px 31px 0;width:auto'));
     },
     B08: function () {
-      return screen(
-        topbar('Pagamento recebido') +
-          '<div class="card"><p class="label">Protocolo</p><div class="row"><b>000000210201012</b><span class="link link44" data-tap="copy" data-copy="000000210201012" data-id="copiar_protocolo">Copiar</span></div></div>' +
-          '<div class="timeline"><div class="tl done"><i></i>Pix pago</div><div class="tl now"><i></i>Emitindo documento</div><div class="tl"><i></i>CDI disponível</div></div>' +
-          '<div class="btn" data-go="B09" data-id="btn_acompanhar">Acompanhar</div>' +
-          '<div class="btn secondary" data-go="B01" data-id="btn_voltar_inicio">Voltar ao início</div>'
-      );
+      return screen('B08',
+        topbar('Pix recebido', false) +
+        '<div class="circ big" style="margin-top:112px">' + check(44) + '</div>' +
+        '<h3 style="text-align:center;margin-top:8px">Pagamento recebido</h3>' +
+        '<p class="label" style="text-align:center;margin:11px 0 0">Estamos emitindo seu CDI</p>' +
+        '<div class="label" style="margin:25px 24px 0;color:var(--text-primary)">Protocolo</div>' +
+        '<div class="field" style="margin:1px 24px 0"><span class="v">000000210201012</span>' + '<span class="link link44" style="text-decoration:none" data-tap="copy" data-copy="000000210201012" data-id="copiar_protocolo">Copiar</span></div>' +
+        '<div class="tl" style="margin-top:12px"><div class="r d"><i></i>Pix pago</div><div class="r n"><i></i>Emitindo documento</div><div class="r"><i></i>CDI disponível</div></div>' +
+        go('Acompanhar', 'btn_acompanhar', 'B09', '', 'margin:23px 31px 0;width:auto') +
+        go('Voltar ao início', 'btn_voltar_inicio', 'B01', 'secondary', 'margin:12px 31px 0;width:auto'));
     },
-    B09: function () {
-      return screen(
-        topbar('Pagamentos') +
-          '<div class="card"><div class="row"><b>19/11/2026</b><span class="tag">Em processamento</span></div><p>R$ 60,00</p>' +
-          '<div class="btn secondary" data-id="btn_emitir_comprovante">Emitir comprovante</div></div>' +
-          '<div class="card"><div class="row"><b>05/05/2026</b><span class="tag">Expirado</span></div><p>R$ 60,00</p></div>',
-        tabbar('perfil')
-      );
-    }
+    B09: function () { return screen('B09', docCard(docState() === 'ready' ? 'ready' : 'proc'), tabbar('docs')); },
+    B10: function () { return BASES.B10(); },
+    B11: function () {
+      return withSheet('B10', sheet(
+        at(54, 'Dispensa de incorporação (CDI)', 'h3 c', 'left:0;right:0') +
+        at(110, '<div class="ibox"><b></b><b></b><b></b></div>', '', 'left:50%;margin-left:-40px') +
+        at(218, 'Gostaria de emitir o documento digitalmente?', 'body c', 'left:53px;right:53px') +
+        at(307, ui('Emitir documento', 'btn_emitir_documento', 'emit-start'), 'fld') +
+        at(367, go('Voltar', 'btn_voltar', 'back', 'secondary'), 'fld'), 'back'));
+    },
+    B12: function () {
+      return withSheet('B10', sheet(
+        at(54, 'Emitindo documento', 'h3 c', 'left:0;right:0') +
+        at(165, '<div class="dots" data-id="carregando"><i></i><i></i><i></i></div>', '', 'left:0;right:0') +
+        at(205, 'Por favor aguarde', 'body c sec', 'left:0;right:0') +
+        at(362, go('Voltar', 'btn_voltar', 'B10', 'secondary'), 'fld')));
+    },
+    B13: function () {
+      return withSheet('B10', sheet(
+        at(54, 'Concluído', 'h3 c', 'left:0;right:0') +
+        at(119, '<div class="circ">' + check() + '</div>', '', 'left:0;right:0') +
+        at(216, 'Documento emitido e baixado no seu dispositivo!', 'body c', 'left:53px;right:53px') +
+        at(362, go('Concluir', 'btn_concluir', 'B10'), 'fld')));
+    },
+    B14: function () { return screen('B14', pagamentos(), tabbar('perfil')); }
   };
 
   // ---------- ações internas (data-ui) ----------
   var UI = {
-    'cal-toggle': function () {
-      P.ui.cal = !P.ui.cal;
-      if (P.ui.cal) {
-        var s = P.form.data || '2026-11-19';
+    pop: function (w) {
+      if (w === 'close') { P.ui.pop = null; return true; }
+      P.ui.pop = P.ui.pop === w ? null : w;
+      if (w === 'cal' && P.ui.pop) {
+        var s = P.form.data || TODAY;
         P.ui.month = { y: +s.slice(0, 4), m: +s.slice(5, 7) - 1 };
       }
       return true;
     },
-    'cal-prev': function () {
-      var m = P.ui.month;
-      P.ui.month = m.m === 0 ? { y: m.y - 1, m: 11 } : { y: m.y, m: m.m - 1 };
-      return true;
-    },
-    'cal-next': function () {
-      var m = P.ui.month;
-      P.ui.month = m.m === 11 ? { y: m.y + 1, m: 0 } : { y: m.y, m: m.m + 1 };
-      return true;
-    },
-    'cal-pick': function (s) {
-      if (P.form.data !== s) P.form.hora = '';
-      P.form.data = s;
-      P.ui.cal = false;
-      delete P.errors.data;
-      return true;
-    },
-    slot: function (h) {
-      P.form.hora = h;
-      delete P.errors.hora;
-      return true;
-    },
+    'cal-prev': function () { var m = P.ui.month; P.ui.month = m.m === 0 ? { y: m.y - 1, m: 11 } : { y: m.y, m: m.m - 1 }; return true; },
+    'cal-next': function () { var m = P.ui.month; P.ui.month = m.m === 11 ? { y: m.y + 1, m: 0 } : { y: m.y, m: m.m + 1 }; return true; },
+    'cal-pick': function (s) { if (P.form.data !== s) P.form.hora = ''; P.form.data = s; P.ui.pop = null; delete P.errors.data; return true; },
+    slot: function (h) { P.form.hora = h; P.ui.pop = null; delete P.errors.hora; return true; },
     'submit-book': function () {
-      var f = P.form;
-      var msgs = { municipio: 'Informe o município', motivo: 'Selecione o motivo', unidade: 'Selecione a unidade', data: 'Selecione a data', hora: 'Selecione um horário' };
+      var f = P.form, msgs = { municipio: 'Digite o município', motivo: 'Selecione o motivo', unidade: 'Selecione a unidade', data: 'Selecione a data', hora: 'Selecione o horário' };
       var miss = [];
       P.errors = {};
-      Object.keys(msgs).forEach(function (k) {
-        if (!f[k] || !String(f[k]).trim()) {
-          P.errors[k] = msgs[k];
-          miss.push(k);
-        }
-      });
-      if (miss.length) {
-        P.log('form_error', { note: 'faltou: ' + miss.join(',') });
-        return true;
-      }
+      P.ui.pop = null;
+      Object.keys(msgs).forEach(function (k) { if (!f[k] || !String(f[k]).trim()) { P.errors[k] = msgs[k]; miss.push(k); } });
+      if (miss.length) { P.log('form_error', { note: 'faltou: ' + miss.join(',') }); return true; }
       P.booking = { data: f.data, hora: f.hora, unidade: f.unidade, municipio: f.municipio.trim(), motivo: f.motivo };
       P.form = {};
-      P.ui.cal = false;
       return 'A06';
     },
-    'pix-gen': function () {
-      P.pix = { status: 'open', t0: Date.now() };
-      return 'B05';
-    },
+    'pix-gen': function () { P.pix.status = 'open'; P.pix.t0 = Date.now(); P.pix.n = (P.pix.n || 0) + 1; return 'B05'; },
     'pix-paid': function () {
       P.pix.status = 'paid';
-      return 'B08';
-    }
+      P.pix.paidAt = Date.now();
+      return P.pix.n >= 2 ? 'B05P' : 'B08';
+    },
+    'emit-start': function () { return 'B12'; }
   };
   window.UI = UI;
 
   // ---------- ganchos chamados pelo app.js ----------
   P.resetScenario = function (sc) {
-    P.sc = sc;
-    P.form = {};
-    P.errors = {};
-    P.ui = { cal: false, month: null };
-    P.booking = null;
-    P.pix = { status: 'none', t0: 0 };
-    P.from = null;
-    P.sheetBase = null;
+    P.sc = sc; P.form = {}; P.errors = {}; P.ui = { pop: null, month: null };
+    P.booking = null; P.pix = { status: 'none', t0: 0, paidAt: 0, n: 0 }; P.from = null; P.sheetBase = null;
   };
   P.onTaskStart = function (task) {
-    P.form = {};
-    P.errors = {};
-    P.ui.cal = false;
-    P.from = null;
-    P.sheetBase = null;
+    P.form = {}; P.errors = {}; P.ui.pop = null; P.from = null; P.sheetBase = null;
     if (task.id === 'A2' && !P.booking) P.booking = DEFAULT_BOOKING;
-    if (task.id === 'B1') P.pix = { status: 'none', t0: 0 };
-    if (task.id === 'B2') P.pix = { status: 'expired', t0: 0 };
+    if (task.id === 'B1') P.pix = { status: 'none', t0: 0, paidAt: 0, n: 0 };
+    if (task.id === 'B2') P.pix = { status: 'expired', t0: 0, paidAt: 0, n: 1 };
   };
-  P.afterRender = function () {
+  var timers = [];
+  P.afterRender = function (id) {
+    timers.forEach(clearTimeout); timers = [];
     var el = document.getElementById('pixtimer');
-    if (!el) return;
-    var iv = setInterval(function () {
-      var e2 = document.getElementById('pixtimer');
-      if (!e2) return clearInterval(iv);
-      e2.textContent = timeLeft();
-    }, 1000);
+    if (el) {
+      (function tick() {
+        var e2 = document.getElementById('pixtimer');
+        if (!e2) return;
+        var left = Math.max(0, 1799 - Math.floor((Date.now() - P.pix.t0) / 1000));
+        e2.textContent = pad(Math.floor(left / 60)) + ':' + pad(left % 60);
+        if (left <= 0 && P.pix.status === 'open') { P.pix.status = 'expired'; return P.go('B06'); }
+        timers.push(setTimeout(tick, 1000));
+      })();
+    }
+    if (id === 'B12') timers.push(setTimeout(function () { if (P.cur() === 'B12') P.go('B13'); }, 2800));
+    if (id === 'B09' || (id === 'B01' && docState() === 'proc')) {
+      var left = PROCESS_MS - (Date.now() - P.pix.paidAt);
+      if (left > 0) timers.push(setTimeout(function () { if (P.cur() === id) P.rerender(); }, left + 50));
+    }
   };
 })();

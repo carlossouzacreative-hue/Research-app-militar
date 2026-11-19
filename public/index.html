@@ -6,6 +6,9 @@
   <meta name="robots" content="noindex, nofollow">
   <meta name="theme-color" content="#ffffff">
   <title>Protótipo acadêmico</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -13,6 +16,21 @@
     <div id="app" class="app"></div>
   </div>
   <p class="legal">Projeto acadêmico de UX · protótipo de média fidelidade · dados fictícios · sem vínculo com o Exército Brasileiro</p>
+  <script>
+    // Desktop: a moldura 393x852 é reduzida (nunca esticada) para caber na janela, mantendo as proporções do Figma
+    (function () {
+      var d = document.querySelector('.device');
+      function fit() {
+        if (innerWidth < 481) { d.style.transform = ''; d.style.marginBottom = ''; return; }
+        var s = Math.min(1, innerHeight / (852 + 20 + 32 + 40));
+        d.style.transform = 'scale(' + s + ')';
+        d.style.transformOrigin = 'top center';
+        d.style.marginBottom = (-(872 * (1 - s))) + 'px';
+      }
+      addEventListener('resize', fit);
+      fit();
+    })();
+  </script>
   <script src="tasks.js"></script>
   <script src="screens.js"></script>
   <script src="app.js"></script>

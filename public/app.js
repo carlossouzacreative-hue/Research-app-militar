@@ -155,32 +155,72 @@
     window.PROTO.from = cur;
     cur = id;
     curEnter = now();
-    render(false);
     log('screen_enter', Object.assign({ screen: id }, ctx()));
     if (run && !run.reached && id === run.task.success) {
       run.reached = true;
       log('success_reached', Object.assign({ screen: id, dur: now() - run.t0 }, ctx()));
       cl('event', run.task.id + '_sucesso_tela');
     }
+    var html = build();
+    var probe = document.createElement('div');
+    probe.innerHTML = html;
+    var nb = probe.querySelector('.screen');
+    var oldEl = app.querySelector('.screen:not(.flow)');
+    var closing = oldEl && oldEl.querySelector('.sheet') && nb && !nb.querySelector('.sheet') && oldEl.getAttribute('data-base') === nb.getAttribute('data-base');
+    if (closing) {
+      app.style.pointerEvents = 'none';
+      var sh = oldEl.querySelector('.sheet'), dm = oldEl.querySelector('.sheet-dim');
+      sh.classList.add('out');
+      if (dm) dm.classList.add('out');
+      setTimeout(function () {
+        app.style.pointerEvents = '';
+        if (cur === id) apply(html, false);
+      }, 190);
+    } else apply(html, false);
   }
 
-  function render(keepScroll) {
+  function build() {
     var s = window.SCREENS[cur];
-    var html = typeof s === 'function' ? s() : s;
+    return typeof s === 'function' ? s() : s;
+  }
+  // "Smart animate": só anima o que mudou. A barra de abas fica parada; o sheet sobe; o fundo não pisca.
+  function apply(html, keepScroll) {
     var oc = 0, os = 0;
+    var oldEl = app.querySelector('.screen:not(.flow)');
+    var oldBase = oldEl && oldEl.getAttribute('data-base');
+    var oldSheet = !!(oldEl && oldEl.querySelector('.sheet'));
     if (keepScroll) {
       var c0 = app.querySelector('.content'), s0 = app.querySelector('.sheet');
       oc = c0 ? c0.scrollTop : 0;
       os = s0 ? s0.scrollTop : 0;
     }
     app.innerHTML = html + '<button class="done-pill" data-flow data-act="done">Terminei a tarefa</button>';
-    var c1 = app.querySelector('.content'), s1 = app.querySelector('.sheet');
+    var nu = app.querySelector('.screen');
+    var c1 = app.querySelector('.content'), s1 = app.querySelector('.sheet'), d1 = app.querySelector('.sheet-dim');
     if (c1) c1.scrollTop = oc;
     if (s1) s1.scrollTop = os;
-    if (window.PROTO.afterRender) window.PROTO.afterRender();
+    if (!keepScroll && nu && !nu.classList.contains('flow')) {
+      var nb = nu.getAttribute('data-base');
+      if (oldBase !== nb) {
+        nu.classList.add('in');
+        if (s1) s1.classList.add('in');
+        if (d1) d1.classList.add('in');
+      } else if (s1) {
+        if (oldSheet) s1.classList.add('swap');
+        else {
+          s1.classList.add('in');
+          if (d1) d1.classList.add('in');
+        }
+      }
+    }
+    if (window.PROTO.afterRender) window.PROTO.afterRender(cur);
+  }
+  function render(keepScroll) {
+    apply(build(), keepScroll);
   }
   window.PROTO.log = function (t, x) { log(t, Object.assign({ screen: cur }, ctx(), x || {})); };
   window.PROTO.go = function (id) { go(id); };
+  window.PROTO.cur = function () { return cur; };
   window.PROTO.rerender = function () { render(true); };
 
   function startTask() {
@@ -284,7 +324,7 @@
     }
     if (live.getAttribute('data-tap') === 'copy') {
       try {
-        if (navigator.clipboard) navigator.clipboard.writeText(live.getAttribute('data-copy') || '');
+        if (navigator.clipboard) navigator.clipboard.writeText(live.getAttribute('data-copy') || '').catch(function () {});
       } catch (er) {}
       toast('Código copiado');
     }
