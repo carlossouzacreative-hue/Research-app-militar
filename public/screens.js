@@ -166,7 +166,7 @@
       '<div class="label" style="margin-top:10px">' + esc(b.unidade) + ' &nbsp;|&nbsp; ' + esc(b.municipio) + '</div></div>' +
       go('Novo agendamento', 'btn_novo_agendamento', 'A03', '', 'margin:8px 33px 0;width:auto') +
       '<h3 style="margin:24px 17px 0">Histórico de agendamentos</h3>' +
-      '<div class="card line" style="margin:8px 17px 0;padding:11px 16px;display:flex;align-items:center;justify-content:space-between"><span class="body">Junta militar &nbsp;•&nbsp; 12/07/2026</span>' + link44('Expandir', 'btn_expandir', 'A10') + '</div>';
+      '<div class="card line" style="margin:8px 17px 0;padding:11px 16px;display:flex;align-items:center;justify-content:space-between"><span class="body">Junta militar &nbsp;•&nbsp; 12/07/2026</span>' + '<span class="label" style="color:var(--text-link)">'+link44('Expandir', 'btn_expandir', 'A10')+'</span>' + '</div>';
   }
 
   // ---------- Perfil e Pagamentos ----------
@@ -188,11 +188,11 @@
         '<div style="display:flex;gap:8px;align-items:center;margin-top:10px">' + tag(tg.t) + '<span class="label">' + note + '</span></div>' +
         '<div class="divider" style="margin-top:22px"></div>' + btnHtml + (cap && cap !== 'first' ? '<p class="cap" style="margin:8px 0 0">' + cap + '</p>' : '') + '</div>';
     };
-    var back = '<div class="abs" style="top:calc(var(--sb) + 1px)"><div class="pill-back" data-go="back" data-id="voltar"><i></i>Voltar</div></div>';
+    var back = '<div class="abs" style="top:calc(var(--sb) + 9px)"><div class="pill-back" data-go="back" data-id="voltar"><i></i>Voltar</div></div>';
     var one = P.sc === 'B'
       ? card({ date: '12/07/2026', t: 'Em processamento' }, 'Disponível em breve', dead('Emitir comprovante', 'btn_emitir_comprovante', '', 'margin-top:15px'), 'first')
       : card({ date: '12/07/2026', t: 'Pago' }, 'Comprovante disponível', dead('Emitir comprovante', 'btn_emitir_comprovante', '', 'margin-top:15px'), 'first');
-    var two = card({ date: '05/05/2026', t: 'Expirado' }, 'Nenhuma cobrança feita', dead('Gerar novo pix', 'btn_gerar_novo_pix_desabilitado', 'disabled', 'margin-top:15px'), 'Pix indisponível: O documento já foi pago');
+    var two = card({ date: '05/05/2026', t: 'Expirado' }, 'Nenhuma cobrança feita', dead('Gerar novo pix', 'btn_gerar_novo_pix_desabilitado', 'disabled', 'margin-top:15px;background:var(--neutral-100);border-color:transparent'), 'Pix indisponível: O documento já foi pago');
     return back + '<h2 style="margin:38px 24px 0">Pagamentos</h2><h3 style="margin:24px 17px 0">Histórico de pagamentos</h3>' + one + two;
   }
 

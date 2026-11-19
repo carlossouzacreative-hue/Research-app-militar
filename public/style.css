@@ -67,7 +67,7 @@ h3, .h3 { font: 600 18px/24px var(--font); color: var(--title); margin: 0; }
 .card.line { background: var(--neutral-0); border: 1px solid var(--text-disabled); }
 .tag { display: inline-flex; align-items: center; height: 24px; padding: 2px 12px; border-radius: 999px; border: 1px solid var(--text-secondary); background: var(--neutral-100); font: 400 14px/20px var(--font); color: var(--text-secondary); white-space: nowrap; }
 .divider { height: 1px; background: #cdd1d8; }
-.link { color: var(--text-link); text-decoration: underline; cursor: pointer; }
+.link { color: var(--text-link); text-decoration: none; cursor: pointer; }
 .link44 { position: relative; display: inline-block; }
 .link44::after { content: ""; position: absolute; left: -8px; right: -8px; top: 50%; height: 44px; transform: translateY(-50%); }
 
