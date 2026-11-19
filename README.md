@@ -55,9 +55,9 @@ Os dados ficam em `data\` (fora do Git): `participantes.json`, `sessions\P1.json
 
 Entrada e saída de cada tela (tempo), cada toque (elemento e se foi **toque morto**, em algo que não responde), início e fim de cada tarefa, se chegou à tela de sucesso, se a pessoa tocou em "Terminei a tarefa" e as marcações do moderador. Os mesmos marcos vão para o Clarity como eventos (`A1_inicio`, `B1_sucesso_tela`…) e tags (`participante`, `cenario`, `ordem`, `tarefa`). Nos arquivos só aparecem IDs (P1, P2…), nunca nomes.
 
-## Trocar as telas provisórias pelas do Figma
+## Onde ficam as telas (já vêm do Figma)
 
-- `public/screens.js`: uma entrada por tela. Use `data-go="ID"` para navegar (`back` volta), `data-tap` para elementos que reagem sem navegar e `data-id` para dar nome ao elemento nos logs. Tudo que não tiver `data-go` ou `data-tap` conta como toque morto.
+- `public/screens.js`: uma entrada por tela. Use `data-go="ID"` para navegar (`back` volta), `data-tap` para elementos que reagem sem navegar, `data-ui` para ações internas (calendário, Pix) e `data-id` para dar nome ao elemento nos logs. Tudo que não tiver `data-go` ou `data-tap` conta como toque morto.
 - `public/tasks.js`: texto de cada tarefa, tela em que começa e tela que conta como sucesso.
 - `public/style.css`: tokens (cores, tipografia, raios) iguais aos do Figma.
 
