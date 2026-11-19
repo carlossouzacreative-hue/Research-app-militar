@@ -173,3 +173,12 @@ select.inp:invalid, select.inp.ph { color: var(--text-disabled); }
 .btn, .tab, .link, .inp.sm, .cal-d, .o { transition: opacity .12s ease, transform .12s ease; }
 .btn:active, .tab:active { transform: scale(.98); opacity: .85; }
 @media (prefers-reduced-motion: reduce) { .screen.in .content, .sheet.in, .sheet-dim.in, .sheet.swap > *, .sheet.out, .sheet-dim.out { animation: none; } }
+
+/* atualização "em tempo real" do card (processando -> disponível) */
+.card.upd { animation: cardUpd 900ms ease-out; }
+.card.upd .tag, .card.upd .btn { animation: popIn 450ms cubic-bezier(.2,.8,.2,1); }
+@keyframes cardUpd { 0% { background: #dfe8f7; box-shadow: 0 0 0 3px rgba(0,81,194,.25); } 100% { background: var(--neutral-100); box-shadow: 0 0 0 0 rgba(0,81,194,0); } }
+@keyframes popIn { 0% { opacity: 0; transform: scale(.94); } 100% { opacity: 1; transform: scale(1); } }
+/* "Emitindo documento" pisca de leve na tela de pagamento recebido */
+.tl .r.n { animation: blink 1.6s ease-in-out infinite; }
+@keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: .4; } }

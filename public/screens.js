@@ -11,7 +11,7 @@
   'use strict';
 
   var TODAY = '2026-11-19'; // "hoje" fictício do protótipo
-  var PROCESS_MS = 8000;    // tempo da "emissão em processo" depois do pagamento
+  var PROCESS_MS = 4000;    // tempo da "emissão em processo" depois do pagamento
   var MESES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
   var PIX_CODE = '00020126580014br.gov.bcb.pix0136exercito-cdi-ficticio-520400005303986540560.005802BR6304A1B2';
   var DEFAULT_BOOKING = { data: '2026-11-25', hora: '16:00', unidade: 'Unidade Centro', municipio: 'Itajaí', motivo: 'Emissão de documento' };
@@ -457,7 +457,7 @@
     if (id === 'B12') timers.push(setTimeout(function () { if (P.cur() === 'B12') P.go('B13'); }, 2800));
     if (id === 'B09' || (id === 'B01' && docState() === 'proc')) {
       var left = PROCESS_MS - (Date.now() - P.pix.paidAt);
-      if (left > 0) timers.push(setTimeout(function () { if (P.cur() === id) P.rerender(); }, left + 50));
+      if (left > 0) timers.push(setTimeout(function () { if (P.cur() === id) { P.rerender(); var c = document.querySelector('.content .card'); if (c) c.classList.add('upd'); } }, left + 50));
     }
   };
 })();
