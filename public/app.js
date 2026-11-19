@@ -156,7 +156,7 @@
     cur = id;
     curEnter = now();
     log('screen_enter', Object.assign({ screen: id }, ctx()));
-    if (run && !run.reached && id === run.task.success) {
+    if (run && !run.reached && [].concat(run.task.success).indexOf(id) >= 0) {
       run.reached = true;
       log('success_reached', Object.assign({ screen: id, dur: now() - run.t0 }, ctx()));
       cl('event', run.task.id + '_sucesso_tela');

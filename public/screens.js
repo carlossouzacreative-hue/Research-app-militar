@@ -11,6 +11,7 @@
   'use strict';
 
   var TODAY = '2026-11-19'; // "hoje" fictício do protótipo
+  var READY_ENABLED = false; // true = depois do tempo abaixo, o CDI libera o botao 'Emitir CDI' (fluxo B11-B13)
   var PROCESS_MS = 4000;    // tempo da "emissão em processo" depois do pagamento
   var MESES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
   var PIX_CODE = '00020126580014br.gov.bcb.pix0136exercito-cdi-ficticio-520400005303986540560.005802BR6304A1B2';
@@ -42,7 +43,7 @@
     return x % 3 === 0;
   }
   function bookingData() { return P.booking || DEFAULT_BOOKING; }
-  function ready() { return P.pix.status === 'paid' && Date.now() - P.pix.paidAt >= PROCESS_MS; }
+  function ready() { return READY_ENABLED && P.pix.status === 'paid' && Date.now() - P.pix.paidAt >= PROCESS_MS; }
   function docState() {
     if (P.pix.status === 'paid') return ready() ? 'ready' : 'proc';
     if (P.pix.status === 'open') return 'open';
@@ -437,8 +438,8 @@
   P.onTaskStart = function (task) {
     P.form = {}; P.errors = {}; P.ui.pop = null; P.from = null; P.sheetBase = null;
     if (task.id === 'A2' && !P.booking) P.booking = DEFAULT_BOOKING;
-    if (task.id === 'B1') P.pix = { status: 'none', t0: 0, paidAt: 0, n: 0 };
-    if (task.id === 'B2') P.pix = { status: 'expired', t0: 0, paidAt: 0, n: 1 };
+    if (task.id === 'B1') P.pix = { status: 'expired', t0: 0, paidAt: 0, n: 1 };
+    if (task.id === 'B2' && P.pix.status !== 'open') P.pix = { status: 'open', t0: Date.now(), paidAt: 0, n: 2 };
   };
   var timers = [];
   P.afterRender = function (id) {
@@ -457,7 +458,7 @@
     if (id === 'B12') timers.push(setTimeout(function () { if (P.cur() === 'B12') P.go('B13'); }, 2800));
     if (id === 'B09' || (id === 'B01' && docState() === 'proc')) {
       var left = PROCESS_MS - (Date.now() - P.pix.paidAt);
-      if (left > 0) timers.push(setTimeout(function () { if (P.cur() === id) { P.rerender(); var c = document.querySelector('.content .card'); if (c) c.classList.add('upd'); } }, left + 50));
+      if (READY_ENABLED && left > 0) timers.push(setTimeout(function () { if (P.cur() === id) { P.rerender(); var c = document.querySelector('.content .card'); if (c) c.classList.add('upd'); } }, left + 50));
     }
   };
 })();
