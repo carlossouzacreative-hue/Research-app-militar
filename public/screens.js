@@ -91,6 +91,9 @@
   function check(sz) {
     return '<svg width="' + (sz || 40) + '" height="' + (sz || 40) + '" viewBox="0 0 40 40" fill="none"><path d="M10 21l7 7 13-15" stroke="#555" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   }
+  function clock(sz) {
+    return '<svg width="' + (sz || 40) + '" height="' + (sz || 40) + '" viewBox="0 0 40 40" fill="none"><circle cx="20" cy="20" r="14" stroke="#1f1f1f" stroke-width="3"/><path d="M20 11v9l6 4" stroke="#1f1f1f" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  }
   function topbar(title, back) {
     return '<div class="topbar">' + (back === false ? '' : '<div class="back" data-go="back" data-id="voltar">&lt;</div>') + '<h2>' + title + '</h2></div>';
   }
@@ -122,7 +125,7 @@
     var s = docState();
     var open = s === 'avail' || s === 'ready';
     var dest = s === 'ready' ? 'B11' : s === 'avail' ? 'B04' : 'B09';
-    var t = s === 'proc' ? 'Em processamento' : 'CDI disponível para emitir';
+    var t = s === 'proc' ? 'Pagamento pendente' : 'CDI disponível para emitir';
     return H('Olá, Rafael!') + '<h2 style="margin:4px 24px 0">Status</h2>' +
       '<div class="card" style="margin-top:8px"><h3 data-id="nome">Rafael Almeida Nogueira</h3><p class="body sec">Dispensado de incorporação</p>' +
       '<div style="display:flex;margin-top:4px">' + tag(t) + '</div>' +
@@ -132,7 +135,7 @@
 
   // ---------- Documentos ----------
   function docCard(state) {
-    var t = { avail: 'Disponível para emitir', ready: 'Disponível para emitir', open: 'Pagamento em aberto', proc: 'Em processamento' }[state];
+    var t = { avail: 'Disponível para emitir', ready: 'Disponível para emitir', open: 'Pagamento em aberto', proc: 'Pagamento pendente' }[state];
     var sub = state === 'open' ? 'Você já gerou um Pix para este documento' : 'Emissão online com pagamento via Pix';
     var b = state === 'avail' ? go('Emitir CDI', 'btn_emitir_cdi', 'B04', '', 'margin-top:12px')
       : state === 'ready' ? go('Emitir CDI', 'btn_emitir_cdi', 'B11', '', 'margin-top:12px')
@@ -191,7 +194,7 @@
     };
     var back = '<div class="abs" style="top:calc(var(--sb) + 9px)"><div class="pill-back" data-go="back" data-id="voltar"><i></i>Voltar</div></div>';
     var one = P.sc === 'B'
-      ? card({ date: '12/07/2026', t: 'Em processamento' }, 'Disponível em breve', dead('Emitir comprovante', 'btn_emitir_comprovante', '', 'margin-top:15px'), 'first')
+      ? card({ date: '12/07/2026', t: 'Pendente' }, 'Registrando pagamento', dead('Emitir comprovante', 'btn_emitir_comprovante', '', 'margin-top:15px'), 'first')
       : card({ date: '12/07/2026', t: 'Pago' }, 'Comprovante disponível', dead('Emitir comprovante', 'btn_emitir_comprovante', '', 'margin-top:15px'), 'first');
     var two = card({ date: '05/05/2026', t: 'Expirado' }, 'Nenhuma cobrança feita', dead('Gerar novo pix', 'btn_gerar_novo_pix_desabilitado', 'disabled', 'margin-top:15px;background:var(--neutral-100);border-color:transparent'), 'Pix indisponível: O documento já foi pago');
     return back + '<h2 style="margin:38px 24px 0">Pagamentos</h2><h3 style="margin:24px 17px 0">Histórico de pagamentos</h3>' + one + two;
@@ -357,15 +360,13 @@
     },
     B08: function () {
       return screen('B08',
-        topbar('Pix recebido', false) +
-        '<div class="circ big" style="margin-top:112px">' + check(44) + '</div>' +
-        '<h3 style="text-align:center;margin-top:8px">Pagamento recebido</h3>' +
-        '<p class="label" style="text-align:center;margin:11px 0 0">Estamos emitindo seu CDI</p>' +
-        '<div class="label" style="margin:25px 24px 0;color:var(--text-primary)">Protocolo</div>' +
-        '<div class="field" style="margin:1px 24px 0"><span class="v">000000210201012</span>' + '<span class="link link44" style="text-decoration:none" data-tap="copy" data-copy="000000210201012" data-id="copiar_protocolo">Copiar</span></div>' +
-        '<div class="tl" style="margin-top:12px"><div class="r d"><i></i>Pix pago</div><div class="r n"><i></i>Emitindo documento</div><div class="r"><i></i>CDI disponível</div></div>' +
-        go('Acompanhar', 'btn_acompanhar', 'B09', '', 'margin:23px 31px 0;width:auto') +
-        go('Voltar ao início', 'btn_voltar_inicio', 'B01', 'secondary', 'margin:12px 31px 0;width:auto'));
+        topbar('Pix pendente', false) +
+        '<div class="circ big" style="margin-top:112px">' + clock(44) + '</div>' +
+        '<h3 style="text-align:center;margin-top:8px">Pagamento pendente</h3>' +
+        '<p class="label" style="text-align:center;margin:11px 0 0">Estamos registrando seu pagamento,<br>por favor aguarde.</p>' +
+        go('Acompanhar', 'btn_acompanhar', 'B09', '', 'margin:36px 31px 0;width:auto') +
+        go('Voltar aos documentos', 'btn_voltar_documentos', 'B09', 'secondary', 'margin:12px 31px 0;width:auto') +
+        '<p class="cap" style="text-align:center;margin:24px 62px 0">Também é possível acompanhar o pagamento pela seção Pagamentos.</p>');
     },
     B09: function () { return screen('B09', docCard(docState() === 'ready' ? 'ready' : 'proc'), tabbar('docs')); },
     B10: function () { return BASES.B10(); },
@@ -424,7 +425,7 @@
     'pix-paid': function () {
       P.pix.status = 'paid';
       P.pix.paidAt = Date.now();
-      return P.pix.n >= 2 ? 'B05P' : 'B08';
+      return 'B08';
     },
     'emit-start': function () { return 'B12'; }
   };
@@ -438,8 +439,8 @@
   P.onTaskStart = function (task) {
     P.form = {}; P.errors = {}; P.ui.pop = null; P.from = null; P.sheetBase = null;
     if (task.id === 'A2' && !P.booking) P.booking = DEFAULT_BOOKING;
-    if (task.id === 'B1') P.pix = { status: 'expired', t0: 0, paidAt: 0, n: 1 };
-    if (task.id === 'B2' && P.pix.status !== 'open') P.pix = { status: 'open', t0: Date.now(), paidAt: 0, n: 2 };
+    if (task.id === 'B1') P.pix = { status: 'none', t0: 0, paidAt: 0, n: 0 };
+    if (task.id === 'B2') P.pix = { status: 'expired', t0: 0, paidAt: 0, n: 1 };
   };
   var timers = [];
   P.afterRender = function (id) {
