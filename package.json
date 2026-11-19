@@ -1,0 +1,11 @@
+{
+  "name": "prototipo-cdi",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Prototipo de media fidelidade (case academico, app Exercito/CDI) com log de testes de usabilidade",
+  "scripts": {
+    "start": "node server.js",
+    "resumo": "node tools/resumo.js"
+  },
+  "engines": { "node": ">=18" }
+}

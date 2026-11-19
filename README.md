@@ -1,0 +1,79 @@
+# Protótipo de teste: App Exército (CDI)
+
+Protótipo de **média fidelidade**, feito em código, para os testes de usabilidade do case acadêmico de redesign da emissão do CDI. Projeto acadêmico, com dados fictícios e sem vínculo com o Exército Brasileiro.
+
+Cada participante faz os dois cenários (A: agendar atendimento, B: pagar com Pix), com a ordem alternada. O servidor roda no seu PC, um túnel do Cloudflare deixa o link acessível pelo celular das pessoas, e tudo que elas fazem é registrado em dois lugares: no log local e no Microsoft Clarity.
+
+## O que instalar (uma vez)
+
+No PowerShell:
+
+```powershell
+winget install OpenJS.NodeJS.LTS
+winget install Git.Git
+winget install Cloudflare.cloudflared
+```
+
+Feche e abra o PowerShell depois de instalar.
+
+## Primeira vez
+
+```powershell
+git clone <endereço do repositório>
+cd prototipo-cdi
+```
+
+1. Crie o projeto em [clarity.microsoft.com](https://clarity.microsoft.com) e cole o **Project ID** em `config.json` (campo `clarityId`).
+2. Rode `.\scripts\iniciar.ps1`.
+
+Se o PowerShell bloquear scripts: `Set-ExecutionPolicy -Scope Process Bypass` e rode de novo.
+
+## Na hora do teste
+
+`.\scripts\iniciar.ps1` atualiza do GitHub (`git pull`), sobe o servidor e o túnel e escreve na tela:
+
+- o link de cada participante, por exemplo `https://xxxx.trycloudflare.com/?p=P1`;
+- o link do **painel do moderador** (só para você), com a tabela de status e botões para marcar "Com ajuda", "Abandonou" ou uma nota.
+
+O endereço do túnel muda a cada vez que ele é reiniciado. Mande o link novo para cada pessoa. Ctrl+C encerra tudo.
+
+Teste sozinho antes, com o link do P1 no seu celular, e depois apague a pasta `data\sessions`.
+
+## Controle por PowerShell
+
+| Comando | O que faz |
+| --- | --- |
+| `.\scripts\status.ps1` | Mostra ordem e status (Pendente, Em andamento, Ok) de cada pessoa |
+| `.\scripts\definir.ps1 P3 BA` | Define a ordem (`AB` ou `BA`). Cria o participante se não existir |
+| `.\scripts\marcar.ps1 P2 B "Com ajuda"` | Ajusta um status à mão |
+| `.\scripts\resumo.ps1` | Gera `data\resumo_tarefas.csv` e `data\resumo_telas.csv` |
+| `.\scripts\atualizar.ps1` | Baixa a versão nova do GitHub |
+
+Os dados ficam em `data\` (fora do Git): `participantes.json`, `sessions\P1.jsonl`, os CSVs e o token do painel.
+
+## O que é registrado
+
+Entrada e saída de cada tela (tempo), cada toque (elemento e se foi **toque morto**, em algo que não responde), início e fim de cada tarefa, se chegou à tela de sucesso, se a pessoa tocou em "Terminei a tarefa" e as marcações do moderador. Os mesmos marcos vão para o Clarity como eventos (`A1_inicio`, `B1_sucesso_tela`…) e tags (`participante`, `cenario`, `ordem`, `tarefa`). Nos arquivos só aparecem IDs (P1, P2…), nunca nomes.
+
+## Trocar as telas provisórias pelas do Figma
+
+- `public/screens.js`: uma entrada por tela. Use `data-go="ID"` para navegar (`back` volta), `data-tap` para elementos que reagem sem navegar e `data-id` para dar nome ao elemento nos logs. Tudo que não tiver `data-go` ou `data-tap` conta como toque morto.
+- `public/tasks.js`: texto de cada tarefa, tela em que começa e tela que conta como sucesso.
+- `public/style.css`: tokens (cores, tipografia, raios) iguais aos do Figma.
+
+Tela cheia no celular; moldura de iPhone 393×852 no computador.
+
+## Quando o link para de funcionar
+
+O túnel gratuito (trycloudflare) não tem garantia de disponibilidade. Plano B: publicar a pasta `public` no Cloudflare Pages (o log local deixa de funcionar nesse caso, o Clarity continua).
+
+## Estrutura
+
+```
+server.js                 servidor Node (sem dependências)
+config.json               clarityId, porta
+participantes.exemplo.json  modelo; a cópia real fica em data/
+public/                   protótipo e painel do moderador
+scripts/                  scripts PowerShell
+tools/resumo.js           gera os CSVs do resumo
+```
