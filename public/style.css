@@ -1,3 +1,7 @@
+@font-face { font-family: Inter; font-weight: 400; font-style: normal; font-display: block; src: url(fonts/Inter-Regular.woff2) format('woff2'); }
+@font-face { font-family: Inter; font-weight: 500; font-style: normal; font-display: block; src: url(fonts/Inter-Medium.woff2) format('woff2'); }
+@font-face { font-family: Inter; font-weight: 600; font-style: normal; font-display: block; src: url(fonts/Inter-SemiBold.woff2) format('woff2'); }
+@font-face { font-family: Inter; font-weight: 700; font-style: normal; font-display: block; src: url(fonts/Inter-Bold.woff2) format('woff2'); }
 /* Tokens: valores lidos das variáveis do Figma (coleção Colors) */
 :root {
   --neutral-0: #ffffff;
@@ -94,7 +98,7 @@ h3, .h3 { font: 600 18px/24px var(--font); color: var(--title); margin: 0; }
 .sheet .pad { left: 31px; right: 31px; }
 .ibox { width: 80px; height: 100px; background: var(--icon-box); border-radius: 8px; display: flex; flex-direction: column; justify-content: center; gap: 10px; padding: 0 14px; }
 .ibox b { display: block; height: 6px; background: #fff; border-radius: 1px; }
-.circ { width: 80px; height: 80px; border-radius: 50%; background: var(--neutral-100); border: 1px solid #bdbdbd; display: flex; align-items: center; justify-content: center; font: 700 32px/32px var(--font); color: #333; margin: 0 auto; }
+.circ { width: 80px; height: 80px; border-radius: 50%; background: var(--neutral-100); border: 1px solid #bdbdbd; display: flex; align-items: center; justify-content: center; font: 700 32px/32px var(--font); color: #576175; margin: 0 auto; }
 .circ.big { width: 88px; height: 88px; background: var(--neutral-200); }
 .circ svg { display: block; }
 .dots { display: flex; justify-content: center; gap: 10px; }

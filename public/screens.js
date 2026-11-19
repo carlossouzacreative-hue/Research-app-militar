@@ -89,10 +89,10 @@
   }
   function tag(t) { return '<span class="tag">' + t + '</span>'; }
   function check(sz) {
-    return '<svg width="' + (sz || 40) + '" height="' + (sz || 40) + '" viewBox="0 0 40 40" fill="none"><path d="M10 21l7 7 13-15" stroke="#555" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    return '<svg width="' + (sz || 40) + '" height="' + (sz || 40) + '" viewBox="0 0 40 40" fill="none"><path d="M10 21l7 7 13-15" stroke="#576175" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   }
   function clock(sz) {
-    return '<svg width="' + (sz || 40) + '" height="' + (sz || 40) + '" viewBox="0 0 40 40" fill="none"><circle cx="20" cy="20" r="14" stroke="#1f1f1f" stroke-width="3"/><path d="M20 11v9l6 4" stroke="#1f1f1f" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    return '<svg width="' + (sz || 40) + '" height="' + (sz || 40) + '" viewBox="0 0 40 40" fill="none"><circle cx="20" cy="20" r="14" stroke="#576175" stroke-width="3"/><path d="M20 11v9l6 4" stroke="#576175" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   }
   function topbar(title, back) {
     return '<div class="topbar">' + (back === false ? '' : '<div class="back" data-go="back" data-id="voltar">&lt;</div>') + '<h2>' + title + '</h2></div>';
