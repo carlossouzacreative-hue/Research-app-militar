@@ -164,9 +164,9 @@
       '<div class="card" style="margin-top:8px" data-id="card_proximo"><h3>Junta militar</h3>' +
       '<div class="body" style="margin-top:2px;display:flex;gap:14px"><span>Horário: ' + b.hora + '</span><span>Data: ' + br(b.data) + '</span></div>' +
       '<div class="label" style="margin-top:10px">' + esc(b.unidade) + ' &nbsp;|&nbsp; ' + esc(b.municipio) + '</div></div>' +
-      go('Novo agendamento', 'btn_novo_agendamento', 'A03', '', 'margin:8px 33px 0;width:auto') +
-      '<h3 style="margin:36px 17px 0">Histórico de agendamentos</h3>' +
-      '<div class="card line" style="margin:12px 17px 0;padding:11px 16px;display:flex;align-items:center;justify-content:space-between"><span class="body">Junta militar &nbsp;•&nbsp; 12/07/2026</span>' + '<span class="label" style="color:var(--text-link)">'+link44('Expandir', 'btn_expandir', 'A10')+'</span>' + '</div>';
+      go('Novo agendamento', 'btn_novo_agendamento', 'A03', '', 'margin:36px 33px 0;width:auto') +
+      '<h3 style="margin:12px 17px 0">Histórico de agendamentos</h3>' +
+      '<div class="card line" style="margin:8px 17px 0;padding:11px 16px;display:flex;align-items:center;justify-content:space-between"><span class="body">Junta militar &nbsp;•&nbsp; 12/07/2026</span>' + '<span class="label" style="color:var(--text-link)">'+link44('Expandir', 'btn_expandir', 'A10')+'</span>' + '</div>';
   }
 
   // ---------- Perfil e Pagamentos ----------
