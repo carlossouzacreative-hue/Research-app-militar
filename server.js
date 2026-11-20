@@ -173,6 +173,7 @@ async function handleApi(req, res, url) {
       epoch: gateOf(p).epoch,
       scope: gateOf(p).scope || 'all',
       payRecv: gateOf(p).payRecv || 0,
+      skip: gateOf(p).skip || 0,
       clarityId: readConfig().clarityId || '',
       incluirOpcionais: readConfig().incluirOpcionais !== false
     });
@@ -218,7 +219,8 @@ async function handleApi(req, res, url) {
     if (!isNaN(g)) gt.g = g;
     gt.seen = Date.now();
     gt.label = String(url.searchParams.get('label') || '').slice(0, 60);
-    return json(res, 200, { released: gt.released, epoch: gt.epoch, payOk: !!gt.payOk, payRecv: gt.payRecv || 0 });
+    gt.px = String(url.searchParams.get('x') || '').slice(0, 12);
+    return json(res, 200, { released: gt.released, epoch: gt.epoch, payOk: !!gt.payOk, payRecv: gt.payRecv || 0, skip: gt.skip || 0 });
   }
 
   if (url.pathname === '/api/gate' && req.method === 'POST') {
@@ -238,6 +240,7 @@ async function handleApi(req, res, url) {
     }
     if (body.action === 'reset') { gt.released = 0; gt.g = 0; }
     if (body.action === 'approve') { gt.payRecv = (gt.payRecv || 0) + 1; appendEvents(p, [{ t: Date.now(), type: 'mod_flag', flag: 'aprovou_pagamento', scenario: 'B' }]); }
+    if (body.action === 'skip') { gt.skip = (gt.skip || 0) + 1; appendEvents(p, [{ t: Date.now(), type: 'mod_flag', flag: 'encerrou_tarefa' }]); }
     if (body.action === 'confirm') { gt.payOk = true; appendEvents(p, [{ t: Date.now(), type: 'mod_flag', flag: 'confirmou_pagamento', scenario: 'B' }]); }
     if (body.action === 'restart') {
       // reinicia o teste do participante (scope: 'A', 'B' ou 'all'): novo epoch, status Pendente e log arquivado (nunca apagado)
@@ -279,7 +282,7 @@ async function handleApi(req, res, url) {
     const out = {};
     for (const k of Object.keys(parts)) {
       const gt = gates[k] || { released: 0, g: 0, seen: 0, label: '' };
-      out[k] = Object.assign({}, parts[k], { gate: { payOk: !!gt.payOk, payRecv: gt.payRecv || 0, released: gt.released, g: gt.g, label: gt.label, online: Date.now() - gt.seen < 7000 && gt.seen > 0 } });
+      out[k] = Object.assign({}, parts[k], { gate: { px: gt.px || '', payOk: !!gt.payOk, payRecv: gt.payRecv || 0, released: gt.released, g: gt.g, label: gt.label, online: Date.now() - gt.seen < 7000 && gt.seen > 0 } });
     }
     return json(res, 200, out);
   }

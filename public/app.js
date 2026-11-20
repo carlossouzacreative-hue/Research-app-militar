@@ -31,6 +31,7 @@
   var curLabel = 'abrindo';
   var released = 0; // etapas liberadas pelo moderador
   var epoch = null; // muda quando o moderador reinicia o teste
+  var seenSkip = null; // encerramentos de tarefa feitos pelo moderador
   var seenPay = null; // quantas aprovacoes de pagamento o participante ja viu
 
   // ---------- log para o servidor ----------
@@ -73,13 +74,14 @@
   }
   function beat() {
     if (!P || !cfg) return;
-    fetch('/api/gate?p=' + encodeURIComponent(P) + '&g=' + state.gate + '&label=' + encodeURIComponent(curLabel), { cache: 'no-store' })
+    fetch('/api/gate?p=' + encodeURIComponent(P) + '&g=' + state.gate + '&label=' + encodeURIComponent(curLabel) + '&x=' + (window.PROTO.pixState ? window.PROTO.pixState() : ''), { cache: 'no-store' })
       .then(function (r) { return r.json(); })
       .then(function (j) {
         if (epoch !== null && typeof j.epoch === 'number' && j.epoch !== epoch) {
           return location.reload();
         }
         released = j.released || 0;
+        if (seenSkip !== null && (j.skip || 0) > seenSkip) { seenSkip = j.skip; if (run) doneTask(); }
         if (seenPay !== null && (j.payRecv || 0) > seenPay) {
           seenPay = j.payRecv;
           var ap = window.PROTO.approvePay && window.PROTO.approvePay();
@@ -227,6 +229,7 @@
       log('success_reached', Object.assign({ screen: id, dur: now() - run.t0 }, ctx()));
       cl('event', run.task.id + '_sucesso_tela');
       app.classList.add('frozen');
+      setTimeout(function () { if (run && run.reached) { run.modal = true; render(true); } }, 1100);
       curLabel = 'Concluiu ' + run.task.id + ' (falta tocar em Terminei)';
     }
     var html = build();
@@ -262,8 +265,10 @@
       oc = c0 ? c0.scrollTop : 0;
       os = s0 ? s0.scrollTop : 0;
     }
-    app.innerHTML = html + '<button class="done-pill" data-flow data-act="done">Terminei a tarefa</button>' +
-      (app.classList.contains('frozen') ? '<div class="mission-done" data-flow>Missão completa ✓<small>Toque em "Terminei a tarefa"</small></div>' : '');
+    var reached = !!(run && run.reached);
+    app.innerHTML = html +
+      (run && !(reached && run.modal) ? '<button class="done-pill' + (reached ? '' : ' off') + '" data-flow ' + (reached ? 'data-act="done"' : 'disabled') + '>Terminei a tarefa</button>' : '') +
+      (reached && run.modal ? '<div class="done-dim" data-flow></div><div class="done-sheet" data-flow><div class="ck">✓</div><h3>Tarefa concluída</h3><p>Você chegou ao objetivo. Toque no botão para continuar.</p><button class="btn" data-flow data-act="done">Terminei a tarefa</button></div>' : '');
     var nu = app.querySelector('.screen');
     var c1 = app.querySelector('.content'), s1 = app.querySelector('.sheet'), d1 = app.querySelector('.sheet-dim');
     if (c1) c1.scrollTop = oc;
@@ -452,6 +457,7 @@
         state = loadState();
         epoch = typeof c.epoch === 'number' ? c.epoch : 0;
         seenPay = c.payRecv || 0;
+        seenSkip = c.skip || 0;
         if (state.epoch !== undefined && state.epoch !== epoch) {
           // o moderador reiniciou o teste: tudo, ou só o cenário A/B (volta ao começo daquele cenário)
           var at = c.scope === 'A' || c.scope === 'B' ? plan.findIndex(function (x) { return x.k === 'sc' && x.sc === c.scope; }) : -1;

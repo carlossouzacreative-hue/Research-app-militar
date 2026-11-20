@@ -132,19 +132,19 @@
     var s = docState();
     var open = s !== 'proc';
     var dest = s === 'ready' ? 'B11' : 'B04';   // a home nao entrega o estado do Pix: quem quer ver vai em Documentos
-    var t = s === 'proc' ? 'Pagamento pendente' : 'CDI disponível para emitir';
+    var t = s === 'ready' ? 'CDI disponível para emitir' : 'Pagamento pendente';
     return H('Olá, Rafael!') + '<h2 style="margin:4px 24px 0">Status</h2>' +
       '<div class="card" style="margin-top:8px"><h3 data-id="nome">Rafael Almeida Nogueira</h3><p class="body sec">Dispensado de incorporação</p>' +
       '<div style="display:flex;margin-top:4px">' + tag(t) + '</div>' +
-      (open ? go('Emitir CDI', 'btn_emitir_cdi', dest, '', 'margin-top:12px') : dead('Emitir CDI', 'btn_emitir_cdi_desabilitado', 'disabled', 'margin-top:12px')) +
+      (open ? go(s === 'ready' ? 'Emitir CDI' : 'Pagar taxa', s === 'ready' ? 'btn_emitir_cdi' : 'btn_pagar_taxa', dest, '', 'margin-top:12px') : dead('Emitir CDI', 'btn_emitir_cdi_desabilitado', 'disabled', 'margin-top:12px')) +
       '</div>' + sections(act('Conta gov.br verificada', '12/11/2026', 'Online'));
   }
 
   // ---------- Documentos ----------
   function docCard(state) {
-    var t = { avail: 'Disponível para emitir', ready: 'Disponível para emitir', open: 'Pagamento em aberto', expired: 'Pix expirado', proc: 'Pagamento pendente' }[state];
+    var t = { avail: 'Pagamento pendente', ready: 'Disponível para emitir', open: 'Pagamento pendente', expired: 'Pix expirado', proc: 'Pagamento pendente' }[state];
     var sub = state === 'open' ? 'Você já gerou um Pix para este documento' : state === 'expired' ? 'Seu último Pix expirou. Nenhuma cobrança foi feita.' : 'Emissão online com pagamento via Pix';
-    var b = state === 'avail' ? go('Emitir CDI', 'btn_emitir_cdi', 'B04', '', 'margin-top:12px')
+    var b = state === 'avail' ? go('Pagar taxa', 'btn_pagar_taxa', 'B04', '', 'margin-top:12px')
       : state === 'ready' ? go('Emitir CDI', 'btn_emitir_cdi', 'B11', '', 'margin-top:12px')
       : state === 'expired' ? ui('Gerar novo Pix', 'btn_gerar_novo_pix', 'pix-gen', '', 'margin-top:12px')
       : state === 'open' ? go('Ver Pix em aberto', 'btn_ver_pix', 'B05', '', 'margin-top:12px')
@@ -418,6 +418,7 @@
 
   // o moderador confirmou o pagamento no painel: se ja foi pago (pendente), o card muda ao vivo para "Disponivel para emitir"
   // o moderador aprovou o pagamento: se ha um Pix aberto, vira pagamento pendente e, na tela do Pix, abre a confirmacao
+  P.pixState = function () { return P.sc === 'B' ? (P.pix.status === 'paid' ? (P.payOk ? 'ok' : 'paid') : P.pix.status === 'open' && pixLeft() > 0 ? 'open' : P.pix.status) : ''; };
   P.approvePay = function () {
     if (P.sc !== 'B' || P.pix.status !== 'open') return null;
     P.pix.status = 'paid'; P.pix.paidAt = Date.now(); setLog('Pendente');

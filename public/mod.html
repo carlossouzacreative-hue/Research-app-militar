@@ -61,7 +61,7 @@
         return '<tr' + (wait ? ' style="background:#fff7e0"' : '') + '><td>' + id + '</td><td>' + now + '</td><td>' + (r.ordem || '') + '</td>' +
           '<td><span class="st ' + cls(r.A) + '">' + r.A + '</span></td>' +
           '<td><span class="st ' + cls(r.B) + '">' + r.B + '</span></td>' +
-          '<td>' + (wait ? '<button data-rel="' + id + '">Liberar ' + tid + '</button>' : '<button class="sec" disabled style="opacity:.5;cursor:default">Nada para liberar</button>') + '<br>' + (g.payRecv ? '<small style="color:#1a7f37">1. Pagamento aprovado ✓</small>' : '<button class="sec" data-appr="' + id + '" style="margin-top:4px">1. Aprovar pagamento</button>') + '<br>' + (g.payOk ? '<small style="color:#1a7f37">2. Emissão liberada ✓</small>' : '<button class="sec" data-pay="' + id + '" style="margin-top:4px">2. Liberar emissão</button>') + '<br><small>Reiniciar: ' + ['A', 'B', 'all'].map(function (k) { return '<button class="sec" style="color:#b3261e;border-color:#b3261e;padding:3px 8px;font-size:12px" data-zer="' + id + '" data-sc="' + k + '">' + (k === 'all' ? 'tudo' : 'só ' + k) + '</button>'; }).join('') + '</small></td></tr>';
+          '<td>' + (wait ? '<button data-rel="' + id + '">Liberar ' + tid + '</button>' : '<button class="sec" disabled style="opacity:.5;cursor:default">Nada para liberar</button>') + '<br>' + (g.payRecv ? '<small style="color:#1a7f37">Pagamento aprovado ' + g.payRecv + 'x ✓</small><br>' : '') + '<button class="sec" data-appr="' + id + '"' + (g.px === 'open' ? ' style="margin-top:4px"' : ' disabled style="margin-top:4px;opacity:.5;cursor:default"') + '>1. Aprovar pagamento</button>' + (g.px === 'open' ? '' : '<br><small style="color:#949ba8">só com o Pix aberto na tela dela</small>') + '<br>' + (g.payOk ? '<small style="color:#1a7f37">2. Emissão liberada ✓</small>' : '<button class="sec" data-pay="' + id + '"' + (g.px === 'paid' ? ' style="margin-top:4px"' : ' disabled style="margin-top:4px;opacity:.5;cursor:default"') + '>2. Liberar emissão</button>' + (g.px === 'paid' ? '' : '<br><small style="color:#949ba8">só após aprovar o pagamento</small>')) + '<br><button class="sec" data-skip="' + id + '" style="margin-top:4px;font-size:12px;padding:3px 8px">Encerrar tarefa</button>' + '<br><small>Reiniciar: ' + ['A', 'B', 'all'].map(function (k) { return '<button class="sec" style="color:#b3261e;border-color:#b3261e;padding:3px 8px;font-size:12px" data-zer="' + id + '" data-sc="' + k + '">' + (k === 'all' ? 'tudo' : 'só ' + k) + '</button>'; }).join('') + '</small></td></tr>';
       }).join('');
       if (sel.options.length !== ids.length) {
         sel.innerHTML = ids.map(function (id) { return '<option>' + id + '</option>'; }).join('');
@@ -74,16 +74,16 @@
         .catch(function () { rows.innerHTML = '<tr><td colspan="6">Token inválido. Use o link completo do painel.</td></tr>'; });
     }
     rows.addEventListener('click', function (e) {
-      var rel = e.target.getAttribute('data-rel'), zer = e.target.getAttribute('data-zer'), pay = e.target.getAttribute('data-pay'), appr = e.target.getAttribute('data-appr');
-      if (!rel && !zer && !pay && !appr) return;
+      var rel = e.target.getAttribute('data-rel'), zer = e.target.getAttribute('data-zer'), pay = e.target.getAttribute('data-pay'), appr = e.target.getAttribute('data-appr'), skp = e.target.getAttribute('data-skip');
+      if (!rel && !zer && !pay && !appr && !skp) return;
       var sc = e.target.getAttribute('data-sc');
       if (zer) {
         var what = sc === 'all' ? 'TODO o teste' : 'o cenário ' + sc;
         var ans = prompt('Reiniciar ' + what + ' de ' + zer + '?\nA pessoa volta ao começo e o status vira Pendente. O log antigo fica guardado em data/arquivo.\n\nDigite ' + zer + ' para confirmar:');
         if (ans === null || ans.trim().toUpperCase() !== zer.toUpperCase()) { msg.textContent = 'Reinício cancelado'; return; }
       }
-      fetch('/api/gate?t=' + encodeURIComponent(T), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ p: rel || zer || pay || appr, action: appr ? 'approve' : pay ? 'confirm' : rel ? 'release' : 'restart', scope: sc }) })
-        .then(function () { msg.textContent = appr ? 'Pagamento aprovado: ' + appr : pay ? 'Emissão liberada: ' + pay : rel ? 'Liberado: ' + rel : 'Reiniciado (' + sc + '): ' + zer; load(); });
+      fetch('/api/gate?t=' + encodeURIComponent(T), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ p: rel || zer || pay || appr || skp, action: skp ? 'skip' : appr ? 'approve' : pay ? 'confirm' : rel ? 'release' : 'restart', scope: sc }) })
+        .then(function () { msg.textContent = skp ? 'Tarefa encerrada: ' + skp : appr ? 'Pagamento aprovado: ' + appr : pay ? 'Emissão liberada: ' + pay : rel ? 'Liberado: ' + rel : 'Reiniciado (' + sc + '): ' + zer; load(); });
     });
     document.querySelectorAll('[data-flag]').forEach(function (b) {
       b.addEventListener('click', function () {
