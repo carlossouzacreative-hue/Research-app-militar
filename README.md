@@ -80,6 +80,7 @@ tools/resumo.js           gera os CSVs do resumo
 
 ## Liberação das tarefas pelo moderador
 
+- O Pix da tarefa B expira em 30 segundos de propósito (só o primeiro; o segundo dura 30 minutos). A pessoa vê o erro e precisa gerar outro.
 - Cada tarefa só começa quando você toca em **Liberar** ao lado do participante, no painel. Até lá o botão dele fica cinza ("Aguardando o moderador…").
 - O painel mostra se a pessoa está no site (● no site), em que etapa está e destaca em amarelo quem está esperando liberação.
 - "Zerar" volta as liberações daquele participante. Abrir o link com `&reset=1` também zera.

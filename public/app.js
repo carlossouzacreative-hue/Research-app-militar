@@ -146,18 +146,22 @@
   }
 
   function showIntro() {
-    curLabel = 'Lendo a introdução';
-    flowScreen(
+        flowScreen(
       '<h1>Antes de começar</h1>' +
         '<p>O que você vai usar é um <b>modelo de média fidelidade</b>. Por isso tem poucas cores e algumas coisas não vão responder quando você tocar.</p>' +
         '<p>Isso é proposital: estamos testando as funcionalidades, não um aplicativo pronto. Se tocar em algo que não funciona, tudo bem. Só diga o que esperava que acontecesse.</p>' +
         '<p class="caption">Projeto acadêmico de UX. Dados fictícios. Sem vínculo com o Exército Brasileiro.</p>' +
-        flowBtn('start', 'Começar')
+        '<p class="wait">Aguarde: o moderador vai liberar quando for a hora.</p>' +
+        '<button class="btn disabled" data-flow data-act="start" data-locked="1" data-label="Começar">Aguardando o moderador…</button>'
     );
+    curLabel = 'Aguardando liberar Início';
+    beat();
   }
   function showTransition() {
-    curLabel = 'Entre os cenários';
-    flowScreen('<h1>Parte concluída</h1><p>Vamos para a próxima parte.</p>' + flowBtn('next', 'Continuar'));
+        flowScreen('<h1>Parte concluída</h1><p>Vamos para a próxima parte.</p><p class="wait">Aguarde: o moderador vai liberar quando for a hora.</p>' +
+      '<button class="btn disabled" data-flow data-act="next" data-locked="1" data-label="Continuar">Aguardando o moderador…</button>');
+    curLabel = 'Aguardando liberar Parte 2';
+    beat();
   }
   function showEnd() {
     curLabel = 'Fim do teste';
@@ -344,7 +348,7 @@
       var a = act.getAttribute('data-act');
       if (act.hasAttribute('data-locked')) return;
       if (a === 'start' || a === 'task-start') goFull();
-      if (a === 'task-start') {
+      if (a === 'task-start' || a === 'start' || a === 'next') {
         state.gate += 1;
         saveState();
         beat();
