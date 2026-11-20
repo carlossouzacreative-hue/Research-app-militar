@@ -245,11 +245,6 @@
     var base = BASES[baseId]().replace('data-base="' + baseId + '"', 'data-base="' + baseId + '" data-sheet="1"');
     return base.replace(/<\/div>$/, sheetHtml + '</div>');
   }
-  // sheets de emissao: abrem sobre a tela de onde a pessoa veio (home ou Documentos)
-  function bBase() {
-    if (BASES[P.from]) P.sheetBase = P.from;
-    return P.sheetBase === 'B01' ? 'B01' : 'B10';
-  }
   function baseFor(def) {
     if (BASES[P.from]) P.sheetBase = P.from;
     var id = P.sheetBase && BASES[P.sheetBase] ? P.sheetBase : def;
@@ -407,26 +402,26 @@
     B09: function () { return screen('B09', docCard(docState() === 'ready' ? 'ready' : 'proc'), tabbar('docs')); },
     B10: function () { return BASES.B10(); },
     B11: function () {
-      return withSheet(bBase(), sheet(
+      return withSheet('B10', sheet(
         at(54, 'Dispensa de incorporação (CDI)', 'h3 c', 'left:0;right:0') +
         at(110, '<div class="ibox"><b></b><b></b><b></b></div>', '', 'left:50%;margin-left:-40px') +
         at(218, 'Gostaria de emitir o documento digitalmente?', 'body c', 'left:53px;right:53px') +
         at(307, ui('Emitir documento', 'btn_emitir_documento', 'emit-start'), 'fld') +
-        at(367, go('Voltar', 'btn_voltar', 'back', 'secondary'), 'fld'), 'back'));
+        at(367, go('Voltar', 'btn_voltar', 'back', 'secondary'), 'fld'), 'B10'));   // fora do sheet: so desce e fica em Documentos; Voltar: volta de onde veio
     },
     B12: function () {
-      return withSheet(bBase(), sheet(
+      return withSheet('B10', sheet(
         at(54, 'Emitindo documento', 'h3 c', 'left:0;right:0') +
         at(165, '<div class="dots" data-id="carregando"><i></i><i></i><i></i></div>', '', 'left:0;right:0') +
         at(205, 'Por favor aguarde', 'body c sec', 'left:0;right:0') +
-        at(362, go('Voltar', 'btn_voltar', bBase(), 'secondary'), 'fld')));
+        at(362, go('Voltar', 'btn_voltar', 'B10', 'secondary'), 'fld')));
     },
     B13: function () {
-      return withSheet(bBase(), sheet(
+      return withSheet('B10', sheet(
         at(54, 'Concluído', 'h3 c', 'left:0;right:0') +
         at(119, '<div class="circ">' + check() + '</div>', '', 'left:0;right:0') +
         at(216, 'Documento emitido e baixado no seu dispositivo!', 'body c', 'left:53px;right:53px') +
-        at(362, go('Concluir', 'btn_concluir', bBase()), 'fld')));
+        at(362, go('Concluir', 'btn_concluir', 'B10'), 'fld')));
     },
     B14: function () { return screen('B14', pagamentos(), tabbar('perfil')); }
   };

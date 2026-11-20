@@ -248,7 +248,7 @@
       log('success_reached', Object.assign({ screen: id, dur: now() - run.t0 }, ctx()));
       cl('event', run.task.id + '_sucesso_tela');
       app.classList.add('frozen');
-      setTimeout(function () { if (run && run.reached) { run.modal = true; render(true); } }, 2600);
+      setTimeout(function () { if (run && run.reached) { run.modal = true; render(true); } }, 1500);
       curLabel = 'Concluiu ' + run.task.id + ' (falta tocar em Terminei)';
     }
     var html = build();
