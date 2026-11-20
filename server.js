@@ -217,7 +217,7 @@ async function handleApi(req, res, url) {
     if (!isNaN(g)) gt.g = g;
     gt.seen = Date.now();
     gt.label = String(url.searchParams.get('label') || '').slice(0, 60);
-    return json(res, 200, { released: gt.released, epoch: gt.epoch });
+    return json(res, 200, { released: gt.released, epoch: gt.epoch, payOk: !!gt.payOk });
   }
 
   if (url.pathname === '/api/gate' && req.method === 'POST') {
@@ -236,10 +236,12 @@ async function handleApi(req, res, url) {
       appendEvents(p, [{ t: Date.now(), type: 'mod_flag', flag: 'liberou', note: gt.label }]);
     }
     if (body.action === 'reset') { gt.released = 0; gt.g = 0; }
+    if (body.action === 'confirm') { gt.payOk = true; appendEvents(p, [{ t: Date.now(), type: 'mod_flag', flag: 'confirmou_pagamento', scenario: 'B' }]); }
     if (body.action === 'restart') {
       // reinicia o teste do participante (scope: 'A', 'B' ou 'all'): novo epoch, status Pendente e log arquivado (nunca apagado)
       const scope = body.scope === 'A' || body.scope === 'B' ? body.scope : 'all';
       gt.epoch += 1; gt.scope = scope; gt.label = '';
+      if (scope === 'all' || scope === 'B') gt.payOk = false;
       if (scope === 'all') { gt.released = 0; gt.g = 0; } else gt.released = Math.min(gt.released, gt.g);
       try {
         const parts = readParts();
@@ -275,7 +277,7 @@ async function handleApi(req, res, url) {
     const out = {};
     for (const k of Object.keys(parts)) {
       const gt = gates[k] || { released: 0, g: 0, seen: 0, label: '' };
-      out[k] = Object.assign({}, parts[k], { gate: { released: gt.released, g: gt.g, label: gt.label, online: Date.now() - gt.seen < 7000 && gt.seen > 0 } });
+      out[k] = Object.assign({}, parts[k], { gate: { payOk: !!gt.payOk, released: gt.released, g: gt.g, label: gt.label, online: Date.now() - gt.seen < 7000 && gt.seen > 0 } });
     }
     return json(res, 200, out);
   }

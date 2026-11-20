@@ -416,6 +416,13 @@
     B14: function () { return screen('B14', pagamentos(), tabbar('perfil')); }
   };
 
+  // o moderador confirmou o pagamento no painel: se ja foi pago (pendente), o card muda ao vivo para "Disponivel para emitir"
+  P.confirmPay = function () {
+    if (P.sc !== 'B' || P.payOk || P.pix.status !== 'paid') return false;
+    P.payOk = true; setLog('Pago');
+    return true;
+  };
+
   // ---------- ações internas (data-ui) ----------
   var UI = {
     pop: function (w) {
