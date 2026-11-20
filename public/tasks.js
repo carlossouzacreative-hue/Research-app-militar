@@ -6,6 +6,7 @@ window.TASKS = {
     { id: 'A2', texto: 'Descubra quando é o seu atendimento.', start: 'A07', success: 'A09' }
   ],
   B: [
-    { id: 'B1', texto: 'O seu CDI está disponível. Emita o documento pagando a taxa com Pix.', start: 'B01', success: 'B08' }
+    { id: 'B1', texto: 'O seu CDI está disponível. Emita o documento pagando a taxa com Pix.', start: 'B01', success: 'B08' },
+    { id: 'B2', texto: 'Seu pagamento foi confirmado. Emita o documento.', start: 'B01', success: 'B13' }
   ]
 };

@@ -11,7 +11,6 @@
   'use strict';
 
   var TODAY = '2026-11-19'; // "hoje" fictício do protótipo
-  var READY_ENABLED = false; // true = depois do tempo abaixo, o CDI libera o botao 'Emitir CDI' (fluxo B11-B13)
   var PIX_TTL_FIRST = 10;   // segundos: o 1o Pix expira rapido de proposito, para testar o erro; o 2o dura 30 min
   function pixTtl() { return (P.pix.n || 1) <= 1 ? PIX_TTL_FIRST : 1800; }
   function pixLeft() { return Math.max(0, pixTtl() - 1 - Math.floor((Date.now() - P.pix.t0) / 1000)); }
@@ -46,10 +45,13 @@
     return x % 3 === 0;
   }
   function bookingData() { return P.booking || DEFAULT_BOOKING; }
-  function ready() { return READY_ENABLED && P.pix.status === 'paid' && Date.now() - P.pix.paidAt >= PROCESS_MS; }
+  function ready() { return P.pix.status === 'paid' && !!P.payOk; }   // o moderador libera a tarefa B2 = pagamento confirmado
+  var TODAY_BR = '19/11/2026';
+  function setLog(st) { var l = P.pixLog || (P.pixLog = []); if (l.length) l[l.length - 1].st = st; }
+  function expirePix() { P.pix.status = 'expired'; setLog('Expirado'); }
   function docState() {
     if (P.pix.status === 'paid') return ready() ? 'ready' : 'proc';
-    if (P.pix.status === 'open' && pixLeft() <= 0) P.pix.status = 'expired';
+    if (P.pix.status === 'open' && pixLeft() <= 0) expirePix();
     if (P.pix.status === 'open') return 'open';
     if (P.pix.status === 'expired') return 'expired';
     return 'avail';
@@ -128,9 +130,9 @@
   }
   function homeB() {
     var s = docState();
-    var open = s === 'avail' || s === 'ready' || s === 'expired';
-    var dest = s === 'ready' ? 'B11' : s === 'avail' ? 'B04' : s === 'expired' ? 'B06' : 'B09';
-    var t = s === 'proc' ? 'Pagamento pendente' : s === 'expired' ? 'Pix expirado' : 'CDI disponível para emitir';
+    var open = s !== 'proc';
+    var dest = s === 'ready' ? 'B11' : 'B04';   // a home nao entrega o estado do Pix: quem quer ver vai em Documentos
+    var t = s === 'proc' ? 'Pagamento pendente' : 'CDI disponível para emitir';
     return H('Olá, Rafael!') + '<h2 style="margin:4px 24px 0">Status</h2>' +
       '<div class="card" style="margin-top:8px"><h3 data-id="nome">Rafael Almeida Nogueira</h3><p class="body sec">Dispensado de incorporação</p>' +
       '<div style="display:flex;margin-top:4px">' + tag(t) + '</div>' +
@@ -144,7 +146,7 @@
     var sub = state === 'open' ? 'Você já gerou um Pix para este documento' : state === 'expired' ? 'Seu último Pix expirou. Nenhuma cobrança foi feita.' : 'Emissão online com pagamento via Pix';
     var b = state === 'avail' ? go('Emitir CDI', 'btn_emitir_cdi', 'B04', '', 'margin-top:12px')
       : state === 'ready' ? go('Emitir CDI', 'btn_emitir_cdi', 'B11', '', 'margin-top:12px')
-      : state === 'expired' ? go('Emitir CDI', 'btn_emitir_cdi', 'B06', '', 'margin-top:12px')
+      : state === 'expired' ? ui('Gerar novo Pix', 'btn_gerar_novo_pix', 'pix-gen', '', 'margin-top:12px')
       : state === 'open' ? go('Ver Pix em aberto', 'btn_ver_pix', 'B05', '', 'margin-top:12px')
       : dead('Emitir CDI', 'btn_emitir_cdi_desabilitado', 'disabled', 'margin-top:12px');
     var warn = state === 'open'
@@ -199,10 +201,22 @@
         '<div class="divider" style="margin-top:22px"></div>' + btnHtml + (cap && cap !== 'first' ? '<p class="cap" style="margin:8px 0 0">' + cap + '</p>' : '') + '</div>';
     };
     var back = '<div class="abs" style="top:calc(var(--sb) + 9px)"><div class="pill-back" data-go="back" data-id="voltar"><i></i>Voltar</div></div>';
-    var one = P.sc === 'B'
-      ? card({ date: '12/07/2026', t: 'Pendente' }, 'Registrando pagamento', dead('Emitir comprovante', 'btn_emitir_comprovante', '', 'margin-top:15px'), 'first')
-      : card({ date: '12/07/2026', t: 'Pago' }, 'Comprovante disponível', dead('Emitir comprovante', 'btn_emitir_comprovante', '', 'margin-top:15px'), 'first');
     var two = card({ date: '05/05/2026', t: 'Expirado' }, 'Nenhuma cobrança feita', dead('Gerar novo pix', 'btn_gerar_novo_pix_desabilitado', 'disabled', 'margin-top:15px;background:var(--neutral-100);border-color:transparent'), 'Pix indisponível: O documento já foi pago');
+    var one = '';
+    if (P.sc === 'B') {
+      var lg = (P.pixLog || []).slice().reverse();
+      lg.forEach(function (it, i) {
+        var last = i === 0;
+        var note = { Aberto: 'Aguardando pagamento', Expirado: 'Nenhuma cobrança feita', Pendente: 'Registrando pagamento', Pago: 'Comprovante disponível' }[it.st];
+        var btn = it.st === 'Expirado' && last && P.pix.status === 'expired'
+          ? ui('Gerar novo Pix', 'btn_gerar_novo_pix', 'pix-gen', '', 'margin-top:15px')
+          : dead('Emitir comprovante', 'btn_emitir_comprovante', it.st === 'Pago' ? '' : 'disabled', 'margin-top:15px' + (it.st === 'Pago' ? '' : ';background:var(--neutral-100);border-color:transparent'));
+        one += card({ date: it.date, t: it.st }, note, btn, i === 0 ? 'first' : '');
+      });
+      if (!lg.length) two = two.replace('margin-top:20px', 'margin-top:26px');
+    } else {
+      one = card({ date: '12/07/2026', t: 'Pago' }, 'Comprovante disponível', dead('Emitir comprovante', 'btn_emitir_comprovante', '', 'margin-top:15px'), 'first');
+    }
     return back + '<h2 style="margin:38px 24px 0">Pagamentos</h2><h3 style="margin:24px 17px 0">Histórico de pagamentos</h3>' + one + two;
   }
 
@@ -428,10 +442,11 @@
       P.form = {};
       return 'A06';
     },
-    'pix-gen': function () { P.pix.status = 'open'; P.pix.t0 = Date.now(); P.pix.n = (P.pix.n || 0) + 1; return 'B05'; },
+    'pix-gen': function () { P.pix.status = 'open'; P.pix.t0 = Date.now(); P.pix.n = (P.pix.n || 0) + 1; (P.pixLog || (P.pixLog = [])).push({ date: TODAY_BR, st: 'Aberto' }); return 'B05'; },
     'pix-paid': function () {
       P.pix.status = 'paid';
       P.pix.paidAt = Date.now();
+      setLog('Pendente');
       return 'B08';
     },
     'emit-start': function () { return 'B12'; }
@@ -441,12 +456,16 @@
   // ---------- ganchos chamados pelo app.js ----------
   P.resetScenario = function (sc) {
     P.sc = sc; P.form = {}; P.errors = {}; P.ui = { pop: null, month: null };
-    P.booking = null; P.pix = { status: 'none', t0: 0, paidAt: 0, n: 0 }; P.from = null; P.sheetBase = null;
+    P.booking = null; P.pix = { status: 'none', t0: 0, paidAt: 0, n: 0 }; P.payOk = false; P.pixLog = []; P.from = null; P.sheetBase = null;
   };
   P.onTaskStart = function (task) {
     P.form = {}; P.errors = {}; P.ui.pop = null; P.from = null; P.sheetBase = null;
     if (task.id === 'A2' && !P.booking) P.booking = DEFAULT_BOOKING;
-    if (task.id === 'B1') P.pix = { status: 'none', t0: 0, paidAt: 0, n: 0 };
+    if (task.id === 'B1') { P.pix = { status: 'none', t0: 0, paidAt: 0, n: 0 }; P.payOk = false; P.pixLog = []; }
+    if (task.id === 'B2') {   // o moderador liberou a tarefa: o pagamento foi confirmado
+      if (P.pix.status !== 'paid') { P.pix = { status: 'paid', t0: 0, paidAt: Date.now(), n: P.pix.n || 1 }; if (!(P.pixLog || []).length) (P.pixLog = []).push({ date: TODAY_BR, st: 'Pendente' }); }
+      P.payOk = true; setLog('Pago');
+    }
   };
   var timers = [];
   P.afterRender = function (id) {
@@ -458,14 +477,10 @@
         if (!e2) return;
         var left = pixLeft();
         e2.textContent = pad(Math.floor(left / 60)) + ':' + pad(left % 60);
-        if (left <= 0 && P.pix.status === 'open') { P.pix.status = 'expired'; return P.go('B06'); }
+        if (left <= 0 && P.pix.status === 'open') { expirePix(); return P.go('B06'); }
         timers.push(setTimeout(tick, 1000));
       })();
     }
     if (id === 'B12') timers.push(setTimeout(function () { if (P.cur() === 'B12') P.go('B13'); }, 2800));
-    if (id === 'B09' || (id === 'B01' && docState() === 'proc')) {
-      var left = PROCESS_MS - (Date.now() - P.pix.paidAt);
-      if (READY_ENABLED && left > 0) timers.push(setTimeout(function () { if (P.cur() === id) { P.rerender(); var c = document.querySelector('.content .card'); if (c) c.classList.add('upd'); } }, left + 50));
-    }
   };
 })();

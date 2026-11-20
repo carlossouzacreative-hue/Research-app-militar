@@ -86,3 +86,7 @@ tools/resumo.js           gera os CSVs do resumo
 - "Reiniciar" (só A, só B ou tudo) volta a pessoa ao começo daquele cenário, zera o status e guarda o log antigo em `data\arquivo` (nada é apagado). Pede para digitar o ID do participante para confirmar. Abrir o link com `&reset=1` zera só o navegador de quem abriu.
 - Ao chegar na tela de sucesso, o protótipo congela e mostra "Missão completa ✓" até a pessoa tocar em "Terminei a tarefa".
 - Tela cheia: no Android o toque em "Começar" já pede tela cheia. No iPhone/Android, abra o link e use "Adicionar à tela inicial", depois abra pelo ícone.
+
+## Cenário B (estado do documento)
+
+O estado do CDI aparece nos cards (Início e Documentos) e na tela Pagamentos, e muda só quando a pessoa age: disponível → Pix gerado → expirado → novo Pix → pagamento pendente. A home sempre abre o sheet de pagamento; para ver "Pix expirado" ou "Pagamento pendente" a pessoa vai em Documentos. Ao **liberar a tarefa B2** no painel, o pagamento passa a confirmado: o card vira "Disponível para emitir" e a pessoa emite o documento (confirmar, emitindo, concluído).
