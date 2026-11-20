@@ -188,6 +188,18 @@
   function showInvalid(msg) {
     flowScreen('<h1>Link inválido</h1><p>' + msg + '</p>');
   }
+  function showScenarioIntro(sc) {
+    var extra = sc === 'A' ? '<p>O design deste cenário foi criado levando em conta as limitações atuais do aplicativo.</p>' : '';
+    flowScreen(
+      '<p class="caption">Cenário ' + sc + '</p>' +
+        '<h1>Este é o cenário ' + sc + '</h1>' +
+        '<p>O objetivo aqui é <b>emitir o CDI</b> de forma simples.</p>' + extra +
+        '<p>Se algo falhar ou não sair como você esperava, <b>descreva em voz alta o que esperava que acontecesse</b>.</p>' +
+        '<p class="info">Os cenários são do mesmo aplicativo e vão se alternar.</p>' +
+        flowBtn('sc-go', 'Entendi')
+    );
+    curLabel = 'Lendo apresentação do cenário ' + sc;
+  }
   function showTaskCard() {
     var list = tasksOf(scenario);
     var t = list[state.ti];
@@ -323,6 +335,7 @@
     log('scenario_start', ctx());
     cl('set', 'cenario', sc);
     cl('event', 'cenario_' + sc + '_inicio');
+    if (state.ti === 0) return showScenarioIntro(sc);
     showTaskCard();
   }
   function endScenario() {
@@ -384,6 +397,7 @@
         saveState();
         return runStage();
       }
+      if (a === 'sc-go') return showTaskCard();
       if (a === 'task-start') return startTask();
       if (a === 'done') return doneTask();
     }
