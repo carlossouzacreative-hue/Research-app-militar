@@ -31,6 +31,7 @@
   var curLabel = 'abrindo';
   var released = 0; // etapas liberadas pelo moderador
   var epoch = null; // muda quando o moderador reinicia o teste
+  var seenPay = null; // quantas aprovacoes de pagamento o participante ja viu
 
   // ---------- log para o servidor ----------
   var queue = [];
@@ -79,6 +80,15 @@
           return location.reload();
         }
         released = j.released || 0;
+        if (seenPay !== null && (j.payRecv || 0) > seenPay) {
+          seenPay = j.payRecv;
+          var ap = window.PROTO.approvePay && window.PROTO.approvePay();
+          if (ap) {
+            log('pay_approved_seen', { screen: cur, scenario: scenario || undefined });
+            if (ap.go) window.PROTO.go(ap.go);
+            else if (['B01', 'B02', 'B03', 'B07', 'B09', 'B10', 'B14'].indexOf(cur) >= 0) window.PROTO.rerender();
+          }
+        }
         if (j.payOk && window.PROTO.confirmPay && window.PROTO.confirmPay() && ['B01', 'B02', 'B03', 'B07', 'B09', 'B10', 'B14'].indexOf(cur) >= 0) {
           window.PROTO.rerender();
           var cd = app.querySelector('.content .card');
@@ -158,6 +168,7 @@
   function showIntro() {
         flowScreen(
       '<h1>Antes de começar</h1>' +
+        '<p><b>Este é um teste limitado.</b> Só algumas partes do aplicativo foram construídas, e muita coisa do app real não está disponível aqui.</p>' +
         '<p>O que você vai usar é um <b>modelo de média fidelidade</b>. Por isso tem poucas cores e algumas coisas não vão responder quando você tocar.</p>' +
         '<p>Isso é proposital: estamos testando as funcionalidades, não um aplicativo pronto. Se tocar em algo que não funciona, tudo bem. Só diga o que esperava que acontecesse.</p>' +
         '<p class="caption">Projeto acadêmico de UX. Dados fictícios. Sem vínculo com o Exército Brasileiro.</p>' +
@@ -175,7 +186,7 @@
   }
   function showEnd() {
     curLabel = 'Fim do teste';
-    flowScreen('<h1>Fim do teste</h1><p>Obrigado por participar! Suas respostas ajudam a melhorar o aplicativo.</p>');
+    flowScreen('<h1>Obrigado!</h1><p>Este foi um teste limitado: o protótipo tinha só algumas telas e funções, e o aplicativo de verdade tem muito mais.</p><p>O que você fez e disse aqui ajuda a melhorar a experiência de emitir documentos. Muito obrigado por participar.</p>');
   }
   function showInvalid(msg) {
     flowScreen('<h1>Link inválido</h1><p>' + msg + '</p>');
@@ -440,6 +451,7 @@
         plan = [{ k: 'intro' }, { k: 'sc', sc: c.ordem[0] }, { k: 'trans' }, { k: 'sc', sc: c.ordem[1] }, { k: 'end' }];
         state = loadState();
         epoch = typeof c.epoch === 'number' ? c.epoch : 0;
+        seenPay = c.payRecv || 0;
         if (state.epoch !== undefined && state.epoch !== epoch) {
           // o moderador reiniciou o teste: tudo, ou só o cenário A/B (volta ao começo daquele cenário)
           var at = c.scope === 'A' || c.scope === 'B' ? plan.findIndex(function (x) { return x.k === 'sc' && x.sc === c.scope; }) : -1;

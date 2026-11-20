@@ -87,6 +87,13 @@ tools/resumo.js           gera os CSVs do resumo
 - Ao chegar na tela de sucesso, o protótipo congela e mostra "Missão completa ✓" até a pessoa tocar em "Terminei a tarefa".
 - Tela cheia: no Android o toque em "Começar" já pede tela cheia. No iPhone/Android, abra o link e use "Adicionar à tela inicial", depois abra pelo ícone.
 
-## Cenário B (estado do documento)
+## Cenário B (4 tarefas, todas partindo da home)
 
-O estado do CDI aparece nos cards (Início e Documentos) e na tela Pagamentos, e muda só quando a pessoa age: disponível → Pix gerado → expirado → novo Pix → pagamento pendente. A home sempre abre o sheet de pagamento; para ver "Pix expirado" ou "Pagamento pendente" a pessoa vai em Documentos. No painel, o botão **Confirmar pagamento** muda o card ao vivo de "Pagamento pendente" para "Disponível para emitir" (com uma animação), onde quer que a pessoa esteja. Depois você libera a tarefa B2 e ela emite o documento (confirmar, emitindo, concluído). Se você liberar a B2 sem confirmar antes, o pagamento é confirmado ao começar a tarefa.
+O estado do CDI aparece nos cards (Início e Documentos) e na tela Pagamentos e só muda quando a pessoa age ou quando você usa o painel.
+
+1. **B1**: gerar o Pix; o primeiro expira em 10 s e a pessoa vê "Pix expirado".
+2. **B2**: "Seu Pix expirou. Efetue o pagamento novamente." A pessoa gera outro Pix (30 min, sem botão "Já paguei"). Quando ela disser que pagou, toque em **1. Aprovar pagamento** no painel: abre "Pagamento recebido" na tela dela.
+3. **B3**: card em "Pagamento pendente". Com a pessoa olhando, toque em **2. Liberar emissão**: o card muda ao vivo para "Disponível para emitir". Ela emite o documento (confirmar, emitindo, concluído).
+4. **B4**: conferir o histórico de Pix em Perfil > Pagamentos.
+
+A home sempre abre o sheet de pagamento: para ver "Pix expirado" ou "Pagamento pendente" a pessoa vai em Documentos. O texto de introdução avisa que o teste é limitado e a tela final agradece.

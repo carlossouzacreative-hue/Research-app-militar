@@ -357,7 +357,7 @@
         '<div class="field" style="margin:2px 24px 0" data-id="codigo_pix"><span class="v">' + PIX_CODE + '</span></div>' +
         '<div class="btn" data-tap="copy" data-copy="' + PIX_CODE + '" data-id="btn_copiar_pix" style="margin:12px 31px 0;width:auto">Copiar codigo Pix</div>' +
         '<p class="label c" style="text-align:center;margin:24px 46px 0">Após pagar, a confirmação aparece nesta tela. Não pague duas vezes: use sempre o mesmo Pix.</p>' +
-        (P.pix.n >= 2 ? '<div class="btn secondary hard" data-ui="pix-paid" data-id="btn_ja_paguei" style="margin:20px 31px 0;width:auto">Já paguei</div>' : ''));
+        '');
     },
     // confirmação em bottom sheet (usada a partir do 2º Pix, depois de expirar)
     B05P: function () {
@@ -417,6 +417,12 @@
   };
 
   // o moderador confirmou o pagamento no painel: se ja foi pago (pendente), o card muda ao vivo para "Disponivel para emitir"
+  // o moderador aprovou o pagamento: se ha um Pix aberto, vira pagamento pendente e, na tela do Pix, abre a confirmacao
+  P.approvePay = function () {
+    if (P.sc !== 'B' || P.pix.status !== 'open') return null;
+    P.pix.status = 'paid'; P.pix.paidAt = Date.now(); setLog('Pendente');
+    return { go: P.cur() === 'B05' ? 'B05P' : null };
+  };
   P.confirmPay = function () {
     if (P.sc !== 'B' || P.payOk || P.pix.status !== 'paid') return false;
     P.payOk = true; setLog('Pago');
@@ -469,9 +475,17 @@
     P.form = {}; P.errors = {}; P.ui.pop = null; P.from = null; P.sheetBase = null;
     if (task.id === 'A2' && !P.booking) P.booking = DEFAULT_BOOKING;
     if (task.id === 'B1') { P.pix = { status: 'none', t0: 0, paidAt: 0, n: 0 }; P.payOk = false; P.pixLog = []; }
-    if (task.id === 'B2') {   // o moderador liberou a tarefa: o pagamento foi confirmado
-      if (P.pix.status !== 'paid') { P.pix = { status: 'paid', t0: 0, paidAt: Date.now(), n: P.pix.n || 1 }; if (!(P.pixLog || []).length) (P.pixLog = []).push({ date: TODAY_BR, st: 'Pendente' }); }
-      P.payOk = true; setLog('Pago');
+    if (task.id === 'B2' && P.pix.status !== 'expired') {   // a pessoa chega com o Pix da tarefa anterior ja expirado
+      P.pix = { status: 'expired', t0: 0, paidAt: 0, n: 1 }; P.payOk = false;
+      P.pixLog = [{ date: TODAY_BR, st: 'Expirado' }];
+    }
+    if (task.id === 'B3' && P.pix.status !== 'paid') {   // pagamento aprovado, emissao ainda pendente
+      P.pix = { status: 'paid', t0: 0, paidAt: Date.now(), n: Math.max(2, P.pix.n || 0) }; P.payOk = false;
+      P.pixLog = (P.pixLog && P.pixLog.length ? P.pixLog.filter(function (x) { return x.st === 'Expirado'; }) : [{ date: TODAY_BR, st: 'Expirado' }]).concat([{ date: TODAY_BR, st: 'Pendente' }]);
+    }
+    if (task.id === 'B4') {   // documento emitido: o historico mostra o Pix expirado e o pago
+      P.pix = { status: 'paid', t0: 0, paidAt: Date.now(), n: Math.max(2, P.pix.n || 0) }; P.payOk = true;
+      P.pixLog = [{ date: TODAY_BR, st: 'Expirado' }, { date: TODAY_BR, st: 'Pago' }];
     }
   };
   var timers = [];
