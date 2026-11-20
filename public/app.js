@@ -196,9 +196,19 @@
         '<p>O objetivo aqui é <b>emitir o CDI</b> de forma simples.</p>' + extra +
         '<p>Se algo falhar ou não sair como você esperava, <b>descreva em voz alta o que esperava que acontecesse</b>.</p>' +
         '<p class="info">Os cenários são do mesmo aplicativo e vão se alternar.</p>' +
-        flowBtn('sc-go', 'Entendi')
+        '<button class="btn disabled" data-flow data-act="sc-go" data-read="1">Entendi (8)</button>' +
+        '<p class="cap warn" id="rw" style="display:none;margin:8px 0 0;font:400 12px/16px var(--font)">Leia a tela com atenção antes de continuar.</p>'
     );
     curLabel = 'Lendo apresentação do cenário ' + sc;
+    var left = 8, tm = setInterval(function () {
+      var b = app.querySelector('[data-read]');
+      if (!b) return clearInterval(tm);
+      left -= 1;
+      if (left > 0) { b.textContent = 'Entendi (' + left + ')'; return; }
+      clearInterval(tm);
+      b.removeAttribute('data-read'); b.classList.remove('disabled'); b.classList.add('go'); b.textContent = 'Entendi';
+      var w = app.querySelector('#rw'); if (w) w.style.display = 'none';
+    }, 1000);
   }
   function showTaskCard() {
     var list = tasksOf(scenario);
@@ -381,6 +391,7 @@
     if (act) {
       var a = act.getAttribute('data-act');
       if (act.hasAttribute('data-locked')) return;
+      if (act.hasAttribute('data-read')) { var rw = app.querySelector('#rw'); if (rw) rw.style.display = 'block'; log('read_lock_tap', { note: curLabel }); return; }
       if (a === 'start' || a === 'task-start') goFull();
       if (a === 'task-start' || a === 'start' || a === 'next') {
         state.gate += 1;
