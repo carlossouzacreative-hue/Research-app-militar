@@ -84,7 +84,7 @@ h3, .h3 { font: 600 18px/24px var(--font); color: var(--title); margin: 0; }
 .stepper .st.on i { background: var(--tab-dot-on); border-color: var(--text-secondary); }
 
 /* Barra de abas (componente "Bottom sheet, perfil": 108 de altura) */
-.tabbar { position: absolute; left: 0; right: 0; bottom: 0; z-index: 5; display: flex; padding: 16px 16px var(--sbb); background: var(--tab-bg); }
+.tabbar { position: absolute; left: 0; right: 0; bottom: 0; z-index: 5; display: flex; padding: 16px 16px max(var(--sbb), 24px); background: var(--tab-bg); }
 .tab { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px; font: 400 12px/15px var(--font); color: #000; cursor: pointer; }
 .tab i { width: 36px; height: 36px; border-radius: 50%; background: var(--tab-dot); }
 .tab.on i { background: var(--tab-dot-on); border: 1px solid #7f7f7f; }
@@ -205,3 +205,11 @@ select.inp:invalid, select.inp.ph { color: var(--text-disabled); }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
 .cap.warn { color: #b3261e; }
+
+.pfx { animation: pfx 260ms ease; }
+@keyframes pfx { 0% { transform: scale(1); opacity: 1; } 35% { transform: scale(.96); opacity: .7; } 100% { transform: scale(1); opacity: 1; } }
+.dd i { font-style: normal; animation: ddb 1.2s infinite both; }
+.dd i:nth-child(2) { animation-delay: .2s; }
+.dd i:nth-child(3) { animation-delay: .4s; }
+@keyframes ddb { 0%, 80%, 100% { opacity: .2; } 40% { opacity: 1; } }
+.btn.disabled .dd i { font-size: 44px; line-height: 20px; margin: 0 2px; }

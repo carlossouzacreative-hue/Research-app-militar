@@ -6,6 +6,8 @@
 
   var qs = new URLSearchParams(location.search);
   var P = (qs.get('p') || '').trim();
+  window.PROTO = window.PROTO || {};
+  window.PROTO.pid = P;
   var app = document.getElementById('app');
   var now = function () {
     return Date.now();
@@ -246,7 +248,7 @@
       log('success_reached', Object.assign({ screen: id, dur: now() - run.t0 }, ctx()));
       cl('event', run.task.id + '_sucesso_tela');
       app.classList.add('frozen');
-      setTimeout(function () { if (run && run.reached) { run.modal = true; render(true); } }, 1100);
+      setTimeout(function () { if (run && run.reached) { run.modal = true; render(true); } }, 2600);
       curLabel = 'Concluiu ' + run.task.id + ' (falta tocar em Terminei)';
     }
     var html = build();
@@ -385,6 +387,13 @@
     return el.tagName.toLowerCase() + (txt ? ':' + txt : '');
   }
 
+  // toque em algo que ainda nao funciona: um aperto curto mostra que o app respondeu (nao travou)
+  function pressFx(el) {
+    var t = el.closest('.btn:not(.disabled),.tab,.link,.link44,.field,.inp,.card.line,.act,.cal-d');
+    if (!t) return;
+    t.classList.remove('pfx'); void t.offsetWidth; t.classList.add('pfx');
+    setTimeout(function () { t.classList.remove('pfx'); }, 260);
+  }
   app.addEventListener('click', function (e) {
     var el = e.target;
     var act = el.closest('[data-act]');
@@ -418,7 +427,7 @@
     var named = el.closest('[data-id]');
     var target = (live && live.getAttribute('data-id')) || (named && named.getAttribute('data-id')) || describe(el);
     log('tap', Object.assign({ screen: cur, target: target, dead: !live }, ctx()));
-    if (!live) return;
+    if (!live) { pressFx(el); return; }
     var group = live.getAttribute('data-group');
     if (group) {
       Array.prototype.forEach.call(app.querySelectorAll('[data-group="' + group + '"]'), function (n) {
@@ -462,7 +471,7 @@
     if (!P) return showInvalid('Peça ao moderador o link correto.');
     if (qs.get('reset') === '1') {
       try {
-        localStorage.removeItem(KEY);
+        localStorage.removeItem(KEY); localStorage.removeItem('bk_' + P);
       } catch (e) {}
       fetch('/api/gate?p=' + encodeURIComponent(P) + '&reset=1&g=0', { cache: 'no-store' }).catch(function () {});
     }
@@ -481,6 +490,7 @@
         if (state.epoch !== undefined && state.epoch !== epoch) {
           // o moderador reiniciou o teste: tudo, ou só o cenário A/B (volta ao começo daquele cenário)
           var at = c.scope === 'A' || c.scope === 'B' ? plan.findIndex(function (x) { return x.k === 'sc' && x.sc === c.scope; }) : -1;
+          try { localStorage.removeItem('bk_' + P); } catch (e) {}
           state = at > 0 ? { stage: at, ti: 0, gate: state.gate } : { stage: 0, ti: 0, gate: 0 };
         }
         state.epoch = epoch;
