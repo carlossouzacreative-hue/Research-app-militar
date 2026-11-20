@@ -12,7 +12,7 @@
 
   var TODAY = '2026-11-19'; // "hoje" fictício do protótipo
   var READY_ENABLED = false; // true = depois do tempo abaixo, o CDI libera o botao 'Emitir CDI' (fluxo B11-B13)
-  var PIX_TTL_FIRST = 30;   // segundos: o 1o Pix expira rapido de proposito, para testar o erro; o 2o dura 30 min
+  var PIX_TTL_FIRST = 10;   // segundos: o 1o Pix expira rapido de proposito, para testar o erro; o 2o dura 30 min
   function pixTtl() { return (P.pix.n || 1) <= 1 ? PIX_TTL_FIRST : 1800; }
   function pixLeft() { return Math.max(0, pixTtl() - 1 - Math.floor((Date.now() - P.pix.t0) / 1000)); }
   var PROCESS_MS = 4000;    // tempo da "emissão em processo" depois do pagamento
