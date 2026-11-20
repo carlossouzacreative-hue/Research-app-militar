@@ -203,3 +203,5 @@ select.inp:invalid, select.inp.ph { color: var(--text-disabled); }
 .done-sheet p { margin: 0 0 20px; font: 400 14px/20px var(--font); color: var(--text-secondary); }
 .done-sheet .btn { margin: 0; }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+.cap.warn { color: #b3261e; }

@@ -14,6 +14,7 @@
   var PIX_TTL_FIRST = 10;   // segundos: o 1o Pix expira rapido de proposito, para testar o erro; o 2o dura 30 min
   function pixTtl() { return (P.pix.n || 1) <= 1 ? PIX_TTL_FIRST : 1800; }
   function pixLeft() { return Math.max(0, pixTtl() - 1 - Math.floor((Date.now() - P.pix.t0) / 1000)); }
+  var PAY_PROC_MS = 2000;   // pagamento recebido -> CDI disponivel para emitir (automatico)
   var PROCESS_MS = 4000;    // tempo da "emissão em processo" depois do pagamento
   var MESES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
   var PIX_CODE = '00020126580014br.gov.bcb.pix0136exercito-cdi-ficticio-520400005303986540560.005802BR6304A1B2';
@@ -128,21 +129,28 @@
       '</div>' +
       sections(withBooking ? act('Agendamento', br(b.data), 'Junta militar') : act('Conta gov.br verificada', '12/11/2026', 'Online'));
   }
+  // etiqueta padronizada do CDI (home e Documentos usam as mesmas palavras)
+  function cdiTag(state) {
+    return { avail: 'Pagamento do CDI pendente', open: 'Pagamento do CDI pendente', expired: 'Pagamento do CDI pendente', proc: 'Pagamento do CDI em processamento', ready: 'CDI disponível para emitir' }[state];
+  }
+  var WARN_TRIED = 'Você já tentou pagar este CDI. Confira a situação do pagamento em Documentos.';
   function homeB() {
     var s = docState();
-    var open = s !== 'proc';
-    var dest = s === 'ready' ? 'B11' : 'B04';   // a home nao entrega o estado do Pix: quem quer ver vai em Documentos
-    var t = s === 'ready' ? 'CDI disponível para emitir' : 'Pagamento pendente';
+    var dest = s === 'ready' ? 'B11' : 'B04';   // a home so abre o pagamento: quem quer ver o Pix vai em Documentos
+    var b = s === 'ready' ? go('Emitir CDI', 'btn_emitir_cdi', dest, '', 'margin-top:8px')
+      : s === 'proc' ? dead('Emitir CDI', 'btn_emitir_cdi_desabilitado', 'disabled', 'margin-top:8px')
+      : s === 'expired' ? dead('Pagar taxa', 'btn_pagar_taxa_desabilitado', 'disabled', 'margin-top:8px')
+      : go('Pagar taxa', 'btn_pagar_taxa', dest, '', 'margin-top:8px');
     return H('Olá, Rafael!') + '<h2 style="margin:4px 24px 0">Status</h2>' +
-      '<div class="card" style="margin-top:8px"><h3 data-id="nome">Rafael Almeida Nogueira</h3><p class="body sec">Dispensado de incorporação</p>' +
-      '<div style="display:flex;margin-top:4px">' + tag(t) + '</div>' +
-      (open ? go(s === 'ready' ? 'Emitir CDI' : 'Pagar taxa', s === 'ready' ? 'btn_emitir_cdi' : 'btn_pagar_taxa', dest, '', 'margin-top:12px') : dead('Emitir CDI', 'btn_emitir_cdi_desabilitado', 'disabled', 'margin-top:12px')) +
+      '<div class="card" style="margin-top:8px"><h3 data-id="nome">Rafael Almeida Nogueira</h3>' +
+      '<div style="display:flex;margin-top:14px">' + tag(cdiTag(s)) + '</div>' + b +
+      (s === 'expired' ? '<p class="cap warn" style="margin:8px 0 0">' + WARN_TRIED + '</p>' : '') +
       '</div>' + sections(act('Conta gov.br verificada', '12/11/2026', 'Online'));
   }
 
   // ---------- Documentos ----------
   function docCard(state) {
-    var t = { avail: 'Pagamento pendente', ready: 'Disponível para emitir', open: 'Pagamento pendente', expired: 'Pix expirado', proc: 'Pagamento pendente' }[state];
+    var t = state === 'expired' ? 'Pix do CDI expirado' : cdiTag(state);
     var sub = state === 'open' ? 'Você já gerou um Pix para este documento' : state === 'expired' ? 'Seu último Pix expirou. Nenhuma cobrança foi feita.' : 'Emissão online com pagamento via Pix';
     var b = state === 'avail' ? go('Pagar taxa', 'btn_pagar_taxa', 'B04', '', 'margin-top:12px')
       : state === 'ready' ? go('Emitir CDI', 'btn_emitir_cdi', 'B11', '', 'margin-top:12px')
@@ -152,7 +160,7 @@
     var warn = state === 'open'
       ? '<div class="divider" style="margin-top:12px"></div><p class="cap" style="margin:12px 0 0">Para evitar cobrança duplicada, não geramos outro Pix enquanto este estiver válido.</p>' : '';
     return H('Meus documentos') + '<p class="label" style="margin:0 24px">Documentos do seu processo</p>' +
-      '<div class="card" style="margin-top:20px"><h3>Dispensa de incorporação</h3><p class="body sec">' + sub + '</p>' +
+      '<div class="card" style="margin-top:20px"><h3>Dispensa de incorporação (CDI)</h3><p class="body sec">' + sub + '</p>' +
       '<div style="display:flex;margin-top:4px">' + tag(t) + '</div>' + b + warn + '</div>';
   }
   function docsA(withBooking) {
@@ -240,6 +248,7 @@
     if (BASES[P.from]) P.sheetBase = P.from;
     var id = P.sheetBase && BASES[P.sheetBase] ? P.sheetBase : def;
     if (id === 'A02' && P.booking) id = 'A07';
+    if (id === 'A08' && P.booking) id = 'A09';
     if (id === 'A12' || id === 'A13') id = P.booking ? 'A12' : 'A13';
     if (id === 'B02' || id === 'B10') id = ready() ? 'B10' : 'B02';
     return id;
@@ -357,7 +366,7 @@
         '<div class="field" style="margin:2px 24px 0" data-id="codigo_pix"><span class="v">' + PIX_CODE + '</span></div>' +
         '<div class="btn" data-tap="copy" data-copy="' + PIX_CODE + '" data-id="btn_copiar_pix" style="margin:12px 31px 0;width:auto">Copiar codigo Pix</div>' +
         '<p class="label c" style="text-align:center;margin:24px 46px 0">Após pagar, a confirmação aparece nesta tela. Não pague duas vezes: use sempre o mesmo Pix.</p>' +
-        '');
+        ((P.pix.n || 1) <= 1 ? '<p class="cap" style="text-align:center;margin:12px 46px 0">Teste: este Pix expira em poucos segundos de propósito, para testarmos a retomada do pagamento.</p>' : ''));
     },
     // confirmação em bottom sheet (usada a partir do 2º Pix, depois de expirar)
     B05P: function () {
@@ -480,7 +489,7 @@
       P.pix = { status: 'expired', t0: 0, paidAt: 0, n: 1 }; P.payOk = false;
       P.pixLog = [{ date: TODAY_BR, st: 'Expirado' }];
     }
-    if (task.id === 'B3' && P.pix.status !== 'paid') {   // pagamento aprovado, emissao ainda pendente
+    if (task.id === 'B3') {   // pagamento aprovado: o CDI fica em processamento e libera sozinho
       P.pix = { status: 'paid', t0: 0, paidAt: Date.now(), n: Math.max(2, P.pix.n || 0) }; P.payOk = false;
       P.pixLog = (P.pixLog && P.pixLog.length ? P.pixLog.filter(function (x) { return x.st === 'Expirado'; }) : [{ date: TODAY_BR, st: 'Expirado' }]).concat([{ date: TODAY_BR, st: 'Pendente' }]);
     }
@@ -492,6 +501,17 @@
   var timers = [];
   P.afterRender = function (id) {
     timers.forEach(clearTimeout); timers = [];
+    if (P.sc === 'B' && P.pix.status === 'paid' && !P.payOk) {   // emissao liberada sozinha ~2 s apos o pagamento
+      timers.push(setTimeout(function () {
+        if (!P.confirmPay()) return;
+        if (['B01', 'B02', 'B03', 'B07', 'B09', 'B10', 'B14'].indexOf(P.cur()) >= 0) {
+          P.rerender();
+          var cd = document.querySelector('.content .card');
+          if (cd && P.cur() !== 'B14') cd.classList.add('upd');
+          P.log('pay_confirmed_seen');
+        }
+      }, Math.max(0, PAY_PROC_MS - (Date.now() - P.pix.paidAt))));
+    }
     var el = document.getElementById('pixtimer');
     if (el) {
       (function tick() {

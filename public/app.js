@@ -91,12 +91,6 @@
             else if (['B01', 'B02', 'B03', 'B07', 'B09', 'B10', 'B14'].indexOf(cur) >= 0) window.PROTO.rerender();
           }
         }
-        if (j.payOk && window.PROTO.confirmPay && window.PROTO.confirmPay() && ['B01', 'B02', 'B03', 'B07', 'B09', 'B10', 'B14'].indexOf(cur) >= 0) {
-          window.PROTO.rerender();
-          var cd = app.querySelector('.content .card');
-          if (cd && cur !== 'B14') cd.classList.add('upd');
-          log('pay_confirmed_seen', { screen: cur, scenario: scenario || undefined });
-        }
         unlockGate();
       })
       .catch(function () {});
