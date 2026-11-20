@@ -188,3 +188,12 @@ select.inp:invalid, select.inp.ph { color: var(--text-disabled); }
 .tl .r.n i { animation: blinkD 1.6s ease-in-out infinite; }
 @keyframes blinkT { 0%,100% { color: var(--text-secondary); } 50% { color: var(--text-disabled); } }
 @keyframes blinkD { 0%,100% { background: #a6a6a6; } 50% { background: #e5e5e5; } }
+
+/* liberação pelo moderador */
+.screen.flow .wait { color: var(--text-secondary); font: 400 14px/20px var(--font); margin: 8px 0 0; }
+.screen.flow .btn.disabled { background: var(--neutral-100); color: var(--text-disabled); border: 1px solid var(--neutral-200); cursor: default; }
+.screen.flow .btn.go { animation: popIn 450ms cubic-bezier(.2,.8,.2,1); }
+/* missão completa: o protótipo fica congelado até tocar em "Terminei a tarefa" */
+.frozen .screen:not(.flow) { pointer-events: none; }
+.mission-done { position: absolute; z-index: 29; left: 16px; right: 16px; bottom: calc(var(--sbb) + 16px); padding: 12px 16px; border-radius: 12px; background: var(--neutral-900); color: var(--text-inverse); font: 600 16px/24px var(--font); text-align: center; animation: popIn 350ms cubic-bezier(.2,.8,.2,1); box-shadow: 0 4px 16px rgba(0,0,0,.25); }
+.mission-done small { display: block; font: 400 12px/16px var(--font); opacity: .8; }

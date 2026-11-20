@@ -77,3 +77,11 @@ public/                   protótipo e painel do moderador
 scripts/                  scripts PowerShell
 tools/resumo.js           gera os CSVs do resumo
 ```
+
+## Liberação das tarefas pelo moderador
+
+- Cada tarefa só começa quando você toca em **Liberar** ao lado do participante, no painel. Até lá o botão dele fica cinza ("Aguardando o moderador…").
+- O painel mostra se a pessoa está no site (● no site), em que etapa está e destaca em amarelo quem está esperando liberação.
+- "Zerar" volta as liberações daquele participante. Abrir o link com `&reset=1` também zera.
+- Ao chegar na tela de sucesso, o protótipo congela e mostra "Missão completa ✓" até a pessoa tocar em "Terminei a tarefa".
+- Tela cheia: no Android o toque em "Começar" já pede tela cheia. No iPhone/Android, abra o link e use "Adicionar à tela inicial", depois abra pelo ícone.

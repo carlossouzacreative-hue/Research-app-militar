@@ -15,9 +15,11 @@
   var KEY = 'proto_' + P;
   function loadState() {
     try {
-      return JSON.parse(localStorage.getItem(KEY)) || { stage: 0, ti: 0 };
+      var st = JSON.parse(localStorage.getItem(KEY)) || { stage: 0, ti: 0 };
+      if (typeof st.gate !== 'number') st.gate = 0;
+      return st;
     } catch (e) {
-      return { stage: 0, ti: 0 };
+      return { stage: 0, ti: 0, gate: 0 };
     }
   }
   function saveState() {
@@ -25,7 +27,9 @@
       localStorage.setItem(KEY, JSON.stringify(state));
     } catch (e) {}
   }
-  var state = { stage: 0, ti: 0 };
+  var state = { stage: 0, ti: 0, gate: 0 };
+  var curLabel = 'abrindo';
+  var released = 0; // etapas liberadas pelo moderador
 
   // ---------- log para o servidor ----------
   var queue = [];
@@ -53,6 +57,36 @@
       });
   }
   setInterval(flush, 2000);
+
+  // ---------- liberacao pelo moderador ----------
+  function unlockGate() {
+    var b = app.querySelector('[data-locked]');
+    if (!b || released <= state.gate) return;
+    b.removeAttribute('data-locked');
+    b.classList.remove('disabled');
+    b.classList.add('go');
+    b.textContent = b.getAttribute('data-label') || 'Começar';
+    var w = app.querySelector('.wait');
+    if (w) w.textContent = 'Liberado. Pode começar.';
+  }
+  function beat() {
+    if (!P || !cfg) return;
+    fetch('/api/gate?p=' + encodeURIComponent(P) + '&g=' + state.gate + '&label=' + encodeURIComponent(curLabel), { cache: 'no-store' })
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        released = j.released || 0;
+        unlockGate();
+      })
+      .catch(function () {});
+  }
+  setInterval(beat, 1500);
+  function goFull() {
+    try {
+      var d = document.documentElement;
+      var f = d.requestFullscreen || d.webkitRequestFullscreen;
+      if (f && !document.fullscreenElement) { var r = f.call(d); if (r && r.catch) r.catch(function () {}); }
+    } catch (e) {}
+  }
   window.addEventListener('pagehide', function () {
     flush(true);
   });
@@ -112,6 +146,7 @@
   }
 
   function showIntro() {
+    curLabel = 'Lendo a introdução';
     flowScreen(
       '<h1>Antes de começar</h1>' +
         '<p>O que você vai usar é um <b>modelo de média fidelidade</b>. Por isso tem poucas cores e algumas coisas não vão responder quando você tocar.</p>' +
@@ -121,9 +156,11 @@
     );
   }
   function showTransition() {
+    curLabel = 'Entre os cenários';
     flowScreen('<h1>Parte concluída</h1><p>Vamos para a próxima parte.</p>' + flowBtn('next', 'Continuar'));
   }
   function showEnd() {
+    curLabel = 'Fim do teste';
     flowScreen('<h1>Fim do teste</h1><p>Obrigado por participar! Suas respostas ajudam a melhorar o aplicativo.</p>');
   }
   function showInvalid(msg) {
@@ -139,8 +176,12 @@
       '<p class="caption">Tarefa ' + (state.ti + 1) + ' de ' + list.length + '</p>' +
         '<h1>' + t.texto + '</h1>' +
         '<p class="info">Quando achar que terminou, toque em "Terminei a tarefa".</p>' +
-        flowBtn('task-start', 'Começar')
+        '<p class="wait">Aguarde: o moderador vai liberar quando for a hora.</p>' +
+        '<button class="btn disabled" data-flow data-act="task-start" data-locked="1" data-label="Começar">Aguardando o moderador…</button>'
     );
+    curLabel = 'Aguardando liberar ' + t.id;
+    beat();
+    unlockGate();
   }
 
   // ---------- navegacao do prototipo ----------
@@ -160,6 +201,8 @@
       run.reached = true;
       log('success_reached', Object.assign({ screen: id, dur: now() - run.t0 }, ctx()));
       cl('event', run.task.id + '_sucesso_tela');
+      app.classList.add('frozen');
+      curLabel = 'Concluiu ' + run.task.id + ' (falta tocar em Terminei)';
     }
     var html = build();
     var probe = document.createElement('div');
@@ -194,7 +237,8 @@
       oc = c0 ? c0.scrollTop : 0;
       os = s0 ? s0.scrollTop : 0;
     }
-    app.innerHTML = html + '<button class="done-pill" data-flow data-act="done">Terminei a tarefa</button>';
+    app.innerHTML = html + '<button class="done-pill" data-flow data-act="done">Terminei a tarefa</button>' +
+      (app.classList.contains('frozen') ? '<div class="mission-done" data-flow>Missão completa ✓<small>Toque em "Terminei a tarefa"</small></div>' : '');
     var nu = app.querySelector('.screen');
     var c1 = app.querySelector('.content'), s1 = app.querySelector('.sheet'), d1 = app.querySelector('.sheet-dim');
     if (c1) c1.scrollTop = oc;
@@ -226,6 +270,8 @@
   function startTask() {
     var t = tasksOf(scenario)[state.ti];
     run = { task: t, t0: now(), reached: false };
+    app.classList.remove('frozen');
+    curLabel = 'Fazendo ' + t.id;
     hist = [];
     window.PROTO.onTaskStart(t);
     log('task_start', ctx());
@@ -240,6 +286,7 @@
     log('task_end', Object.assign({ dur: now() - run.t0, result: result }, ctx()));
     cl('event', run.task.id + '_fim_' + result);
     state.ti += 1;
+    app.classList.remove('frozen');
     saveState();
     cur = null;
     showTaskCard();
@@ -295,6 +342,13 @@
     var act = el.closest('[data-act]');
     if (act) {
       var a = act.getAttribute('data-act');
+      if (act.hasAttribute('data-locked')) return;
+      if (a === 'start' || a === 'task-start') goFull();
+      if (a === 'task-start') {
+        state.gate += 1;
+        saveState();
+        beat();
+      }
       if (a === 'start') {
         state.stage = 1;
         saveState();
@@ -360,6 +414,7 @@
       try {
         localStorage.removeItem(KEY);
       } catch (e) {}
+      fetch('/api/gate?p=' + encodeURIComponent(P) + '&reset=1&g=0', { cache: 'no-store' }).catch(function () {});
     }
     fetch('/api/config?p=' + encodeURIComponent(P), { cache: 'no-store' })
       .then(function (r) {
@@ -372,10 +427,10 @@
         state = loadState();
         var jump = parseInt(qs.get('stage'), 10);
         if (!isNaN(jump) && jump >= 0 && jump < plan.length) {
-          state = { stage: jump, ti: 0 };
+          state = { stage: jump, ti: 0, gate: state.gate };
           saveState();
         }
-        if (state.stage >= plan.length) state = { stage: 0, ti: 0 };
+        if (state.stage >= plan.length) state = { stage: 0, ti: 0, gate: 0 };
         loadClarity(c.clarityId);
         cl('set', 'participante', P);
         cl('set', 'ordem', c.ordem.join(''));

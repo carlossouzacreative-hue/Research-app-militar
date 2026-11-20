@@ -25,8 +25,8 @@
 <body>
   <h1>Painel do moderador</h1>
   <table>
-    <thead><tr><th>Participante</th><th>Ordem</th><th>Cenário A</th><th>Cenário B</th></tr></thead>
-    <tbody id="rows"><tr><td colspan="4">Carregando…</td></tr></tbody>
+    <thead><tr><th>Participante</th><th>Agora</th><th>Ordem</th><th>Cenário A</th><th>Cenário B</th><th>Liberar</th></tr></thead>
+    <tbody id="rows"><tr><td colspan="6">Carregando…</td></tr></tbody>
   </table>
 
   <div class="box">
@@ -51,9 +51,13 @@
       var ids = Object.keys(data);
       rows.innerHTML = ids.map(function (id) {
         var r = data[id];
-        return '<tr><td>' + id + '</td><td>' + (r.ordem || '') + '</td>' +
+        var g = r.gate || {};
+        var wait = /Aguardando liberar/.test(g.label || '') && g.released <= g.g;
+        var now = !g.online ? '<span style="color:#949ba8">offline</span>' : '<span style="color:#1a7f37">● no site</span> · ' + (g.label || '');
+        return '<tr' + (wait ? ' style="background:#fff7e0"' : '') + '><td>' + id + '</td><td>' + now + '</td><td>' + (r.ordem || '') + '</td>' +
           '<td><span class="st ' + cls(r.A) + '">' + r.A + '</span></td>' +
-          '<td><span class="st ' + cls(r.B) + '">' + r.B + '</span></td></tr>';
+          '<td><span class="st ' + cls(r.B) + '">' + r.B + '</span></td>' +
+          '<td><button data-rel="' + id + '"' + (wait ? '' : ' class="sec"') + '>Liberar</button> <button class="sec" data-zer="' + id + '">Zerar</button></td></tr>';
       }).join('');
       if (sel.options.length !== ids.length) {
         sel.innerHTML = ids.map(function (id) { return '<option>' + id + '</option>'; }).join('');
@@ -63,8 +67,15 @@
       fetch('/api/status?t=' + encodeURIComponent(T), { cache: 'no-store' })
         .then(function (r) { if (!r.ok) throw new Error(); return r.json(); })
         .then(render)
-        .catch(function () { rows.innerHTML = '<tr><td colspan="4">Token inválido. Use o link completo do painel.</td></tr>'; });
+        .catch(function () { rows.innerHTML = '<tr><td colspan="6">Token inválido. Use o link completo do painel.</td></tr>'; });
     }
+    rows.addEventListener('click', function (e) {
+      var rel = e.target.getAttribute('data-rel'), zer = e.target.getAttribute('data-zer');
+      if (!rel && !zer) return;
+      if (zer && !confirm('Zerar as liberações de ' + zer + '?')) return;
+      fetch('/api/gate?t=' + encodeURIComponent(T), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ p: rel || zer, action: rel ? 'release' : 'reset' }) })
+        .then(function () { msg.textContent = rel ? 'Liberado: ' + rel : 'Zerado: ' + zer; load(); });
+    });
     document.querySelectorAll('[data-flag]').forEach(function (b) {
       b.addEventListener('click', function () {
         var flag = b.getAttribute('data-flag');

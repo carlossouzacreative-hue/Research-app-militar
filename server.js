@@ -4,6 +4,8 @@
 // - POST /api/event         -> grava eventos em data/sessions/P1.jsonl e atualiza o status
 // - GET  /api/status?t=TOKEN-> status de todos (so para o moderador)
 // - POST /api/mod?t=TOKEN   -> o moderador marca "ajuda", "abandonou" ou uma nota
+// - GET  /api/gate?p=P1     -> batimento do participante + quantas etapas o moderador ja liberou
+// - POST /api/gate?t=TOKEN  -> o moderador libera a proxima etapa ({p, action: release|reset})
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
@@ -15,6 +17,7 @@ const DATA = path.join(ROOT, 'data');
 const SESSIONS = path.join(DATA, 'sessions');
 const PARTS = path.join(DATA, 'participantes.json');
 const TOKEN_FILE = path.join(DATA, 'token.txt');
+const GATES = path.join(DATA, 'gates.json');
 
 fs.mkdirSync(SESSIONS, { recursive: true });
 
@@ -90,6 +93,19 @@ function readBody(req, limit = 200 * 1024) {
     req.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
     req.on('error', reject);
   });
+}
+
+
+// Liberacao de etapas: o participante so passa de uma tarefa para a proxima quando o moderador libera.
+// released = quantas etapas ja foram liberadas; g = quantas o participante ja passou; seen = ultimo batimento.
+let gates = {};
+try { gates = JSON.parse(fs.readFileSync(GATES, 'utf8')); } catch (e) { gates = {}; }
+function saveGates() {
+  try { fs.writeFileSync(GATES, JSON.stringify(gates)); } catch (e) {}
+}
+function gateOf(p) {
+  if (!gates[p]) gates[p] = { released: 0, g: 0, seen: 0, label: '' };
+  return gates[p];
 }
 
 const ID_RE = /^[A-Za-z0-9_-]{1,20}$/;
@@ -189,9 +205,47 @@ async function handleApi(req, res, url) {
     return json(res, 200, { ok: true });
   }
 
+  if (url.pathname === '/api/gate' && req.method === 'GET') {
+    const p = safeId(url.searchParams.get('p'));
+    if (!p) return json(res, 400, { erro: 'participante invalido' });
+    const gt = gateOf(p);
+    if (url.searchParams.get('reset') === '1') { gt.released = 0; gt.g = 0; saveGates(); }
+    const g = parseInt(url.searchParams.get('g'), 10);
+    if (!isNaN(g)) gt.g = g;
+    gt.seen = Date.now();
+    gt.label = String(url.searchParams.get('label') || '').slice(0, 60);
+    return json(res, 200, { released: gt.released });
+  }
+
+  if (url.pathname === '/api/gate' && req.method === 'POST') {
+    if (!tokenOk(url)) return json(res, 403, { erro: 'token invalido' });
+    let body;
+    try {
+      body = JSON.parse(await readBody(req));
+    } catch (e) {
+      return json(res, 400, { erro: 'json invalido' });
+    }
+    const p = safeId(body && body.p);
+    if (!p) return json(res, 400, { erro: 'participante invalido' });
+    const gt = gateOf(p);
+    if (body.action === 'release') {
+      gt.released = Math.max(gt.released, gt.g + 1);
+      appendEvents(p, [{ t: Date.now(), type: 'mod_flag', flag: 'liberou', note: gt.label }]);
+    }
+    if (body.action === 'reset') { gt.released = 0; gt.g = 0; }
+    saveGates();
+    return json(res, 200, { ok: true, released: gt.released });
+  }
+
   if (url.pathname === '/api/status' && req.method === 'GET') {
     if (!tokenOk(url)) return json(res, 403, { erro: 'token invalido' });
-    return json(res, 200, readParts());
+    const parts = readParts();
+    const out = {};
+    for (const k of Object.keys(parts)) {
+      const gt = gates[k] || { released: 0, g: 0, seen: 0, label: '' };
+      out[k] = Object.assign({}, parts[k], { gate: { released: gt.released, g: gt.g, label: gt.label, online: Date.now() - gt.seen < 7000 && gt.seen > 0 } });
+    }
+    return json(res, 200, out);
   }
 
   if (url.pathname === '/api/mod' && req.method === 'POST') {
@@ -221,7 +275,18 @@ async function handleApi(req, res, url) {
   return json(res, 404, { erro: 'rota nao encontrada' });
 }
 
+function serveManifest(res, url) {
+  const p = safeId(url.searchParams.get('p')) || '';
+  const m = {
+    name: 'Prototipo academico', short_name: 'Prototipo', start_url: p ? '/?p=' + p : '/', scope: '/',
+    display: 'fullscreen', orientation: 'portrait', background_color: '#ffffff', theme_color: '#ffffff',
+    icons: [{ src: '/icon-192.png', sizes: '192x192', type: 'image/png' }, { src: '/icon-512.png', sizes: '512x512', type: 'image/png' }]
+  };
+  send(res, 200, JSON.stringify(m), { 'Content-Type': 'application/manifest+json; charset=utf-8' });
+}
+
 function serveStatic(req, res, url) {
+  if (url.pathname === '/manifest.webmanifest') return serveManifest(res, url);
   let rel = decodeURIComponent(url.pathname);
   if (rel === '/') rel = '/index.html';
   const file = path.normalize(path.join(PUB, rel));
