@@ -104,7 +104,8 @@ function saveGates() {
   try { fs.writeFileSync(GATES, JSON.stringify(gates)); } catch (e) {}
 }
 function gateOf(p) {
-  if (!gates[p]) gates[p] = { released: 0, g: 0, seen: 0, label: '' };
+  if (!gates[p]) gates[p] = { released: 0, g: 0, seen: 0, label: '', epoch: 0 };
+  if (typeof gates[p].epoch !== 'number') gates[p].epoch = 0;
   return gates[p];
 }
 
@@ -169,6 +170,8 @@ async function handleApi(req, res, url) {
       p,
       ordem,
       status: { A: rec.A, B: rec.B },
+      epoch: gateOf(p).epoch,
+      scope: gateOf(p).scope || 'all',
       clarityId: readConfig().clarityId || '',
       incluirOpcionais: readConfig().incluirOpcionais !== false
     });
@@ -214,7 +217,7 @@ async function handleApi(req, res, url) {
     if (!isNaN(g)) gt.g = g;
     gt.seen = Date.now();
     gt.label = String(url.searchParams.get('label') || '').slice(0, 60);
-    return json(res, 200, { released: gt.released });
+    return json(res, 200, { released: gt.released, epoch: gt.epoch });
   }
 
   if (url.pathname === '/api/gate' && req.method === 'POST') {
@@ -233,6 +236,35 @@ async function handleApi(req, res, url) {
       appendEvents(p, [{ t: Date.now(), type: 'mod_flag', flag: 'liberou', note: gt.label }]);
     }
     if (body.action === 'reset') { gt.released = 0; gt.g = 0; }
+    if (body.action === 'restart') {
+      // reinicia o teste do participante (scope: 'A', 'B' ou 'all'): novo epoch, status Pendente e log arquivado (nunca apagado)
+      const scope = body.scope === 'A' || body.scope === 'B' ? body.scope : 'all';
+      gt.epoch += 1; gt.scope = scope; gt.label = '';
+      if (scope === 'all') { gt.released = 0; gt.g = 0; } else gt.released = Math.min(gt.released, gt.g);
+      try {
+        const parts = readParts();
+        if (parts[p]) {
+          if (scope === 'all' || scope === 'A') parts[p].A = 'Pendente';
+          if (scope === 'all' || scope === 'B') parts[p].B = 'Pendente';
+          writeParts(parts);
+        }
+      } catch (e) {}
+      const f = path.join(SESSIONS, p + '.jsonl');
+      if (fs.existsSync(f)) {
+        const arq = path.join(DATA, 'arquivo');
+        fs.mkdirSync(arq, { recursive: true });
+        const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+        const lines = fs.readFileSync(f, 'utf8').split('\n').filter(Boolean);
+        const out = [], keep = [];
+        for (const l of lines) {
+          let sc = null;
+          try { sc = JSON.parse(l).scenario; } catch (e) {}
+          (scope === 'all' || sc === scope ? out : keep).push(l);
+        }
+        if (out.length) fs.writeFileSync(path.join(arq, p + '_' + scope + '_' + stamp + '.jsonl'), out.join('\n') + '\n');
+        fs.writeFileSync(f, keep.length ? keep.join('\n') + '\n' : '');
+      }
+    }
     saveGates();
     return json(res, 200, { ok: true, released: gt.released });
   }

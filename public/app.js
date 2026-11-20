@@ -30,6 +30,7 @@
   var state = { stage: 0, ti: 0, gate: 0 };
   var curLabel = 'abrindo';
   var released = 0; // etapas liberadas pelo moderador
+  var epoch = null; // muda quando o moderador reinicia o teste
 
   // ---------- log para o servidor ----------
   var queue = [];
@@ -74,6 +75,9 @@
     fetch('/api/gate?p=' + encodeURIComponent(P) + '&g=' + state.gate + '&label=' + encodeURIComponent(curLabel), { cache: 'no-store' })
       .then(function (r) { return r.json(); })
       .then(function (j) {
+        if (epoch !== null && typeof j.epoch === 'number' && j.epoch !== epoch) {
+          return location.reload();
+        }
         released = j.released || 0;
         unlockGate();
       })
@@ -429,6 +433,14 @@
         cfg = c;
         plan = [{ k: 'intro' }, { k: 'sc', sc: c.ordem[0] }, { k: 'trans' }, { k: 'sc', sc: c.ordem[1] }, { k: 'end' }];
         state = loadState();
+        epoch = typeof c.epoch === 'number' ? c.epoch : 0;
+        if (state.epoch !== undefined && state.epoch !== epoch) {
+          // o moderador reiniciou o teste: tudo, ou só o cenário A/B (volta ao começo daquele cenário)
+          var at = c.scope === 'A' || c.scope === 'B' ? plan.findIndex(function (x) { return x.k === 'sc' && x.sc === c.scope; }) : -1;
+          state = at > 0 ? { stage: at, ti: 0, gate: state.gate } : { stage: 0, ti: 0, gate: 0 };
+        }
+        state.epoch = epoch;
+        saveState();
         var jump = parseInt(qs.get('stage'), 10);
         if (!isNaN(jump) && jump >= 0 && jump < plan.length) {
           state = { stage: jump, ti: 0, gate: state.gate };

@@ -83,6 +83,6 @@ tools/resumo.js           gera os CSVs do resumo
 - O Pix da tarefa B expira em 30 segundos de propósito (só o primeiro; o segundo dura 30 minutos). A pessoa vê o erro e precisa gerar outro.
 - Cada tarefa só começa quando você toca em **Liberar** ao lado do participante, no painel. Até lá o botão dele fica cinza ("Aguardando o moderador…").
 - O painel mostra se a pessoa está no site (● no site), em que etapa está e destaca em amarelo quem está esperando liberação.
-- "Zerar" volta as liberações daquele participante. Abrir o link com `&reset=1` também zera.
+- "Reiniciar" (só A, só B ou tudo) volta a pessoa ao começo daquele cenário, zera o status e guarda o log antigo em `data\arquivo` (nada é apagado). Pede para digitar o ID do participante para confirmar. Abrir o link com `&reset=1` zera só o navegador de quem abriu.
 - Ao chegar na tela de sucesso, o protótipo congela e mostra "Missão completa ✓" até a pessoa tocar em "Terminei a tarefa".
 - Tela cheia: no Android o toque em "Começar" já pede tela cheia. No iPhone/Android, abra o link e use "Adicionar à tela inicial", depois abra pelo ícone.
