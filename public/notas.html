@@ -4,10 +4,15 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex, nofollow">
-  <title>Anotações do moderador</title>
+  <title>Roteiro e anotações</title>
   <style>
     * { box-sizing: border-box; }
-    body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; margin: 0; padding: 16px; color: #172030; background: #f2f2f2; max-width: 760px; }
+    body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; margin: 0; padding: 0; color: #172030; background: #f2f2f2; }
+    .wrap { display: flex; align-items: flex-start; gap: 16px; padding: 16px; }
+    .main { flex: 1 1 0; min-width: 0; max-width: 760px; }
+    .side { flex: 0 0 540px; position: sticky; top: 0; height: 100vh; margin: -16px -16px -16px 0; }
+    .side iframe { width: 100%; height: 100%; border: 0; border-left: 1px solid #d0d0d0; background: #f2f2f2; }
+    @media (max-width: 1100px) { .wrap { display: block; } .side { position: static; height: 560px; margin: 16px 0 0; } .side iframe { border: 1px solid #d0d0d0; border-radius: 10px; } }
     h1 { font-size: 20px; margin: 0 0 4px; }
     h2 { font-size: 16px; margin: 20px 0 8px; }
     .top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
@@ -33,21 +38,41 @@
     @media (max-width: 560px) { .grid { grid-template-columns: 1fr; } }
     label { font-size: 12px; color: #576175; display: block; margin: 4px 0 2px; }
     .cnt button { padding: 4px 12px; cursor: pointer; }
+    .read { border-left: 4px solid #172030; background: #eef1f6; padding: 8px 12px; margin: 6px 0 10px; border-radius: 0 8px 8px 0; font-size: 14px; line-height: 1.45; }
+    .read b { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: #576175; margin-bottom: 2px; }
+    .do { font-size: 13px; margin: 4px 0; color: #172030; }
+    .do span { color: #576175; }
+    details { background: #fff; border-radius: 10px; padding: 10px 12px; margin-bottom: 10px; }
+    summary { cursor: pointer; font-weight: 600; font-size: 15px; }
+    details ul { margin: 8px 0 0; padding-left: 4px; list-style: none; }
+    details li { margin: 6px 0; font-size: 13px; line-height: 1.4; }
+    details li label { display: flex; gap: 8px; align-items: flex-start; font-size: 13px; color: #172030; margin: 0; }
+    details li input { margin-top: 2px; padding: 0; }
+    .step { font-size: 12px; color: #576175; margin: 8px 0 2px; }
+    .pause { background: #fff8e1; border-radius: 10px; padding: 10px 12px; margin-bottom: 10px; font-size: 13px; }
+    .top { position: sticky; top: 0; background: #f2f2f2; padding: 8px 0; z-index: 5; }
+    h2 { border-top: 1px solid #d8d8d8; padding-top: 14px; }
+    code { background: #e9e9e9; padding: 1px 5px; border-radius: 4px; font-size: 12px; }
+    .q { font-size: 14px; font-weight: 600; margin: 10px 0 2px; }
   </style>
 </head>
 <body>
-  <h1>Anotações</h1>
+  <div class="wrap"><div class="main">
+  <h1>Roteiro e anotações</h1>
   <div class="top">
     <select id="p"></select>
     <span id="pres" class="sm"></span>
     <span id="sv" class="saved"></span>
   </div>
   <div id="doc"></div>
+  </div>
+  <div class="side"><iframe id="mod" title="Painel do moderador"></iframe></div></div>
 
   <script src="tasks.js"></script>
   <script>
     var T = new URLSearchParams(location.search).get('t') || '';
     var $ = function (i) { return document.getElementById(i); };
+    function setMod(p) { $('mod').src = 'mod.html?embed=1&t=' + encodeURIComponent(T) + '&only=' + encodeURIComponent(p || ''); }
     var sel = $('p'), doc = $('doc'), sv = $('sv');
     var D = {}, cur = '', ST = {}, timer = null;
 
@@ -100,45 +125,111 @@
       r.appendChild(m); r.appendChild(n); r.appendChild(pl); return r;
     }
 
+    var META = {
+      A1: { ok: 'O agendamento é confirmado na tela de sucesso.', faz: 'Nada: não diga onde clicar.' },
+      A2: { ok: 'Encontra data e horário do agendamento.', faz: 'Nada.' },
+      B1: { ok: 'Gera o Pix e vê o aviso de Pix expirado (expira em 10 segundos, de propósito).', faz: 'Nada: não explique o aviso.' },
+      B2: { ok: 'Gera outro Pix e, depois da sua aprovação, vê "Pagamento recebido".', faz: 'Quando ela disser que pagou, toque em "Aprovar pagamento" (só liga com o Pix aberto na tela). Não ajude a achar o Pix: ela deve ir em Documentos.' },
+      B3: { ok: 'O card muda sozinho para disponível, ela emite o CDI e chega em "Concluído".', faz: 'Nada a liberar: observe se ela percebe a mudança sem você falar.' },
+      B4: { ok: 'Chega à tela Pagamentos (Perfil).', faz: 'Nada: não diga onde fica.' }
+    };
+    var ANTES = [
+      'Na pasta do projeto: <code>Set-ExecutionPolicy -Scope Process Bypass</code> e depois <code>.\\scripts\\iniciar.ps1</code>. Deixe a janela aberta até o fim.',
+      'Pasta <code>data\\sessions</code> vazia e status "Pendente" (<code>.\\scripts\\status.ps1</code>). Teste só em <code>?p=TESTE&amp;reset=1</code>, nunca em P1 a P4.',
+      'Painel do moderador aberto (<code>mod.html?t=TOKEN</code>, token em <code>data\\token.txt</code>) e esta tela de Anotações.',
+      'Mande à pessoa só o link dela (<code>?p=P1</code>…P4), depois de subir o <code>iniciar.ps1</code>.',
+      'Google Meet: peça que ela compartilhe a aba do navegador com o áudio. Se o Meet não gravar, use Win+Alt+R.',
+      'Se for no celular: "Adicionar à tela inicial" e abrir pelo ícone, para tela cheia.'
+    ];
+    var REGRAS = [
+      'Não ajude nem explique a tela. Se ela perguntar "posso clicar aqui?", responda "o que você esperaria que acontecesse?".',
+      'Leia as missões sempre com as mesmas palavras.',
+      'Se algo não responder, lembre que o teste é limitado e peça que diga o que esperava.',
+      'Deixe a pessoa livre para explorar e tentar a missão do jeito que preferir. Registre os caminhos inesperados.',
+      'Se ela travar por mais de 2 minutos, dê uma dica mínima e marque "Com ajuda". Se desistir, use "Encerrar tarefa" no painel.',
+      'Amigos tendem a ser gentis demais: peça críticas abertamente.'
+    ];
+    var ABERTURA = 'Esse é um app fictício, um protótipo de média fidelidade usado apenas para fins acadêmicos, e o teste é limitado, somente algumas partes funcionam. Se clicar em algo que não funciona, apenas me diga em voz alta o que você esperava que acontecesse. Sinta-se livre para explorar e você pode parar o teste quando quiser. Eu só preciso que leia as instruções com calma e faça algumas missões, o app vai te instruir. Não precisa ter pressa ou medo de errar, a avaliação é do app e não de você. Se tiver algo que você não gostou ou achou confuso, preciso que me fale. Ao terminar a missão, o app mostra um botão para avançar para a próxima etapa. O teste é dividido em duas etapas, cenário A e cenário B, e pode parecer confuso porque ele vai pedir para fazer a mesma ação mais de uma vez, mas é normal. Depois de cada missão eu vou te perguntar uma nota de 1 a 7 para o quanto foi fácil, sendo 1 muito difícil e 7 muito fácil, então já pode ir pensando nisso. Vou gravar a tela apenas para análise das respostas e ações, tudo bem?';
+    var ENCERRA = 'Muito obrigado, de verdade! Lembrando que o teste foi limitado: só algumas partes do app existiam, e o de verdade tem muito mais. Tudo que você fez e falou vai me ajudar demais a melhorar a emissão de documentos. Posso parar a gravação?';
+
+    function readBox(titulo, txt) { var r = el('div', 'read'); r.appendChild(el('b', '', titulo)); r.appendChild(document.createTextNode(txt)); return r; }
+    function chk(label, path, html) {
+      var li = el('li'), l = el('label'), i = el('input'); i.type = 'checkbox'; i.checked = !!getD(path);
+      i.addEventListener('change', function () { setD(path, i.checked ? 1 : ''); });
+      var sp = el('span'); if (html) sp.innerHTML = label; else sp.textContent = label;
+      l.appendChild(i); l.appendChild(sp); li.appendChild(l); return li;
+    }
+    function listBox(titulo, items, key, open) {
+      var d = el('details'); if (open) d.open = true; d.appendChild(el('summary', '', titulo));
+      var ul = el('ul'); items.forEach(function (t, i) { ul.appendChild(chk(t, ['checks', key, String(i)], true)); });
+      d.appendChild(ul); return d;
+    }
+
     function build() {
       doc.innerHTML = '';
       var rec = ST[cur] || {}, ordem = String(rec.ordem || 'AB').toUpperCase() === 'BA' ? ['B', 'A'] : ['A', 'B'];
 
-      doc.appendChild(el('h2', '', 'Perfil (perguntas iniciais)'));
-      var pf = el('div', 'card'), g = el('div', 'grid');
+      doc.appendChild(listBox('1. Antes de chamar a pessoa', ANTES, 'antes', false));
+
+      doc.appendChild(el('h2', '', '2. Abertura'));
+      doc.appendChild(readBox('Leia em voz alta', ABERTURA));
+      var ok = el('details'); ok.open = true; var ul0 = el('ul'); ul0.appendChild(chk('A pessoa deu o ok: comecei a gravar', ['checks', 'rec', '0'])); ok.appendChild(el('summary', '', 'Gravação')); ok.appendChild(ul0); doc.appendChild(ok);
+
+      doc.appendChild(el('h2', '', '3. Perguntas iniciais'));
+      doc.appendChild(el('div', 'sm', 'Leia: "Aqui vão algumas perguntas importantes:"'));
+      var pf = el('div', 'card');
+      pf.appendChild(el('div', 'q', 'Quantos anos você tem e qual dispositivo está usando?'));
+      var g = el('div', 'grid');
       g.appendChild(field('Idade', ['perfil', 'idade'], false));
       g.appendChild(field('Dispositivo', ['perfil', 'dispositivo'], false));
-      g.appendChild(field('Já usou app do governo? Qual?', ['perfil', 'appGov'], false));
-      g.appendChild(field('Já precisou de documento do exército? Como foi?', ['perfil', 'docEx'], false));
       pf.appendChild(g);
-      pf.appendChild(seg('Nome no app', ['perfil', 'nomeOk'], ['Sim', 'Não']));
+      pf.appendChild(el('div', 'q', 'Já usou algum aplicativo do governo? Se sim, qual?'));
+      pf.appendChild(field('Resposta', ['perfil', 'appGov'], false));
+      pf.appendChild(el('div', 'q', 'Já precisou de algum documento do exército? Como foi?'));
+      pf.appendChild(field('Resposta', ['perfil', 'docEx'], true));
+      pf.appendChild(el('div', 'q', 'Posso usar o seu nome na exibição do app? Se não quiser, ele mostra um nome genérico; é apenas estético.'));
+      pf.appendChild(seg('Aceitou', ['perfil', 'nomeOk'], ['Sim', 'Não']));
+      pf.appendChild(el('div', 'sm', 'Se sim: digite o nome em "Definir nome no app" (painel do moderador). Nunca CPF, senha ou dado de documento.'));
       doc.appendChild(pf);
+
+      doc.appendChild(el('h2', '', '4. Tarefas'));
+      doc.appendChild(el('div', 'sm', 'Para cada tarefa: confira que a pessoa está "no site" e na tarefa certa → leia a missão com as mesmas palavras e toque em "Liberar" → observe sem ajudar → quando o app mostrar "Tarefa concluída", peça que toque em "Terminei a tarefa" → pergunte: "De 1 a 7, o quanto foi fácil?" (1 = muito difícil, 7 = muito fácil).'));
 
       ordem.forEach(function (sc, i) {
         doc.appendChild(el('div', 'sc', (i + 1) + 'º cenário: ' + sc));
+        doc.appendChild(el('div', 'sm', 'Começa com uma tela de apresentação: o "Entendi" só libera depois de 8 segundos. Não explique nada.'));
         (window.TASKS[sc] || []).forEach(function (t) {
+          var m = META[t.id] || {};
           var c = el('div', 'card'); c.setAttribute('data-t', t.id);
           var h = el('h3', '', t.id); var b = el('span', 'badge', ''); b.setAttribute('data-b', t.id); h.appendChild(b); c.appendChild(h);
-          c.appendChild(el('div', 'mis', '“' + t.texto + '”'));
-          c.appendChild(seg('Resultado', ['tarefas', t.id, 'res'], ['Sim', 'Com ajuda', 'Não']));
-          c.appendChild(seg('Nota', ['tarefas', t.id, 'nota'], ['1', '2', '3', '4', '5', '6', '7'], { 1: 'muito difícil', 7: 'muito fácil' }));
-          c.appendChild(el('div', 'sm', '1 = muito difícil · 7 = muito fácil'));
+          c.appendChild(readBox('Leia a missão', t.texto));
+          var d1 = el('div', 'do'); d1.innerHTML = '<span>Sucesso quando:</span> '; d1.appendChild(document.createTextNode(m.ok || '')); c.appendChild(d1);
+          var d2 = el('div', 'do'); d2.innerHTML = '<span>Você faz:</span> '; d2.appendChild(document.createTextNode(m.faz || '')); c.appendChild(d2);
+          c.appendChild(el('div', 'step', 'Anote'));
           c.appendChild(counter('Toques errados', ['tarefas', t.id, 'toques']));
           c.appendChild(field('Frase literal / o que a pessoa disse', ['tarefas', t.id, 'frase'], true));
+          c.appendChild(seg('Resultado', ['tarefas', t.id, 'res'], ['Sim', 'Com ajuda', 'Não']));
+          c.appendChild(seg('Nota', ['tarefas', t.id, 'nota'], ['1', '2', '3', '4', '5', '6', '7'], { 1: 'muito difícil', 7: 'muito fácil' }));
           c.appendChild(field('O que mudar', ['tarefas', t.id, 'mudar'], false));
           doc.appendChild(c);
         });
+        if (i === 0) doc.appendChild(el('div', 'pause', 'Entre os dois cenários o app mostra "Parte concluída": toque em "Liberar" quando ela estiver pronta.'));
       });
 
-      doc.appendChild(el('h2', '', 'Sugestões da pessoa'));
-      var sg = el('div', 'card'); sg.appendChild(field('Anote conforme ela falar', ['sugestoes'], true)); doc.appendChild(sg);
-
-      doc.appendChild(el('h2', '', 'Perguntas finais'));
+      doc.appendChild(el('h2', '', '5. Perguntas finais'));
       var fm = el('div', 'card');
       fm.appendChild(field('O que foi mais confuso?', ['fim', 'confuso'], true));
       fm.appendChild(field('O que você esperava ver e não viu?', ['fim', 'esperava'], true));
       fm.appendChild(field('Em uma palavra, como foi a experiência?', ['fim', 'palavra'], false));
+      fm.appendChild(field('Tem alguma sugestão? (anote conforme ela falar)', ['sugestoes'], true));
       doc.appendChild(fm);
+
+      doc.appendChild(el('h2', '', '6. Encerramento'));
+      doc.appendChild(el('div', 'sm', 'O app termina com uma tela de agradecimento. Depois, leia:'));
+      doc.appendChild(readBox('Leia em voz alta', ENCERRA));
+      var e = el('details'); e.open = true; var ul1 = el('ul'); ul1.appendChild(chk('Parei a gravação e salvei o arquivo com o nome do participante', ['checks', 'rec', '1'])); e.appendChild(el('summary', '', 'Gravação')); e.appendChild(ul1); doc.appendChild(e);
+
+      doc.appendChild(listBox('7. Regras durante a sessão', REGRAS, 'regras', false));
       mark();
     }
 
@@ -153,7 +244,7 @@
     }
 
     function openP(p) {
-      cur = p; sv.textContent = '';
+      cur = p; sv.textContent = ''; setMod(p);
       fetch('/api/notas?t=' + encodeURIComponent(T) + '&p=' + encodeURIComponent(p), { cache: 'no-store' })
         .then(function (r) { return r.json(); }).then(function (d) { D = d || {}; build(); });
     }

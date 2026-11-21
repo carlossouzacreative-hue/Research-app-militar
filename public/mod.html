@@ -6,6 +6,7 @@
   <meta name="robots" content="noindex, nofollow">
   <title>Painel do moderador</title>
   <style>
+    html { overflow-x: auto; }
     body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; margin: 0; padding: 16px; color: #172030; background: #f2f2f2; }
     h1 { font-size: 20px; margin: 0 0 12px; }
     table { border-collapse: collapse; width: 100%; background: #fff; border-radius: 8px; overflow: hidden; }
@@ -19,6 +20,8 @@
     select, input, button { font: inherit; padding: 8px 10px; margin: 4px 4px 4px 0; border-radius: 8px; border: 1px solid #c9c9c9; }
     button { cursor: pointer; background: #172030; color: #fff; border-color: #172030; }
     button.sec { background: #fff; color: #172030; }
+    body.embed th:nth-child(3), body.embed td:nth-child(3), body.embed th:nth-child(4), body.embed td:nth-child(4), body.embed th:nth-child(5), body.embed td:nth-child(5) { display: none; }
+    body.embed h1 { display: none; }
     .msg { font-size: 13px; color: #576175; margin-left: 4px; }
   </style>
 </head>
@@ -49,12 +52,14 @@
   <script>
     var T = new URLSearchParams(location.search).get('t') || '';
     document.getElementById('lnk').href = 'notas.html?t=' + encodeURIComponent(T);
+    if (/[?&]embed=1/.test(location.search)) document.body.classList.add('embed');
     var rows = document.getElementById('rows');
-    var sel = document.getElementById('p');
+    var sel = document.getElementById('p'), only = (location.search.match(/[?&]only=([^&]+)/) || [])[1];
     var msg = document.getElementById('msg');
     function cls(s) { return String(s || '').split(' ')[0]; }
     function render(data) {
       var ids = Object.keys(data);
+      if (only && data[only]) ids = [only];
       rows.innerHTML = ids.map(function (id) {
         var r = data[id];
         var g = r.gate || {};
@@ -71,6 +76,7 @@
       }).join('');
       if (sel.options.length !== ids.length) {
         sel.innerHTML = ids.map(function (id) { return '<option>' + id + '</option>'; }).join('');
+        if (only && data[only]) sel.value = only;
       }
     }
     function load() {

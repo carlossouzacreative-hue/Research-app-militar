@@ -99,6 +99,6 @@ O estado do CDI aparece nos cards (Início e Documentos) e na tela Pagamentos e 
 A home sempre abre o sheet de pagamento: para ver "Pix expirado" ou "Pagamento pendente" a pessoa vai em Documentos. O texto de introdução avisa que o teste é limitado e a tela final agradece.
 
 
-## Anotações do moderador
+## Roteiro e anotações (tela única)
 
-`notas.html?t=TOKEN` (também há um link "Abrir Anotações" no painel). Escolha o participante: as tarefas aparecem na ordem do teste dele, com a tarefa atual destacada. Para cada tarefa: resultado (sim / com ajuda / não), nota de 1 a 7 (1 = muito difícil, 7 = muito fácil), toques errados, frase literal e o que mudar. Também há perfil, sugestões e perguntas finais. Salva sozinho em `data/notas/Pn.json`.
+`notas.html?t=TOKEN` (também há um link "Abrir Anotações" no painel). É a tela da sessão: à esquerda o roteiro completo (antes de chamar, abertura, perguntas iniciais, tarefas, perguntas finais, encerramento e regras) com os campos de anotação ao lado de cada etapa; à direita o painel do moderador do participante escolhido (liberar, aprovar pagamento, encerrar tarefa, reiniciar, definir nome). Em telas estreitas o painel vai para baixo. Escolha o participante: as tarefas aparecem na ordem do teste dele, com a tarefa atual destacada. Para cada tarefa: resultado (sim / com ajuda / não), nota de 1 a 7 (1 = muito difícil, 7 = muito fácil), toques errados, frase literal e o que mudar. Também há perfil, sugestões e perguntas finais. Salva sozinho em `data/notas/Pn.json`.
