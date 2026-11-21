@@ -30,7 +30,7 @@
   // ---------- utilidades ----------
   // nome da pessoa (definido pelo moderador no painel, so o primeiro nome); sem nome, usa a persona Rafael
   function nome1() { return (P.nome || 'Rafael'); }
-  function nomeCompleto() { return P.nome ? P.nome : 'Rafael Almeida Nogueira'; }
+  function nomeCompleto() { return P.nome ? P.nome + ' Sobrenome' : 'Rafael Almeida Nogueira'; }
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
