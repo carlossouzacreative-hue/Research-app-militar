@@ -27,6 +27,14 @@ fs.mkdirSync(NOTAS, { recursive: true });
 if (!fs.existsSync(PARTS)) {
   fs.copyFileSync(path.join(ROOT, 'participantes.exemplo.json'), PARTS);
 }
+// Acrescenta participantes novos do exemplo (ex.: P5, P6) ao arquivo existente, sem mexer nos que ja estao la.
+try {
+  const ex = JSON.parse(fs.readFileSync(path.join(ROOT, 'participantes.exemplo.json'), 'utf8'));
+  const cur = JSON.parse(fs.readFileSync(PARTS, 'utf8'));
+  let mudou = false;
+  Object.keys(ex).forEach(function (k) { if (!cur[k]) { cur[k] = ex[k]; mudou = true; } });
+  if (mudou) fs.writeFileSync(PARTS, JSON.stringify(cur, null, 2));
+} catch (e) { console.error('participantes.json:', e.message); }
 
 // Token do moderador: gerado uma vez e guardado em data/token.txt
 let TOKEN;
