@@ -28,6 +28,9 @@
   });
 
   // ---------- utilidades ----------
+  // nome da pessoa (definido pelo moderador no painel, so o primeiro nome); sem nome, usa a persona Rafael
+  function nome1() { return (P.nome || 'Rafael'); }
+  function nomeCompleto() { return nome1() + ' Almeida Nogueira'; }
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
@@ -119,8 +122,8 @@
   }
   function homeA(withBooking) {
     var b = bookingData();
-    return H('Olá, Rafael!') + '<h2 style="margin:4px 24px 0">Status</h2>' +
-      '<div class="card" style="margin-top:8px"><h3 data-id="nome">Rafael Almeida Nogueira</h3>' +
+    return H('Olá, ' + esc(nome1()) + '!') + '<h2 style="margin:4px 24px 0">Status</h2>' +
+      '<div class="card" style="margin-top:8px"><h3 data-id="nome">' + esc(nomeCompleto()) + '</h3>' +
       '<div style="display:flex;margin-top:14px">' + tag('CDI indisponível online') + '</div>' +
       dead('Emitir CDI', 'btn_emitir_cdi_desabilitado', 'disabled', 'margin-top:8px') +
       '<p class="cap" style="margin:4px 0 0">A emissão online de documentos está indisponível. Para obter o CDI, agende um atendimento na Junta Militar ' + link44('O que preciso levar?', 'link_o_que_levar', 'A04') + '</p>' +
@@ -141,8 +144,8 @@
       : s === 'proc' ? '<div class="btn disabled" data-id="btn_emitir_cdi_carregando" style="margin-top:8px"><span class="dd"><i>.</i><i>.</i><i>.</i></span></div>'
       : s === 'expired' ? dead('Pagar taxa', 'btn_pagar_taxa_desabilitado', 'disabled', 'margin-top:8px')
       : go('Pagar taxa', 'btn_pagar_taxa', dest, '', 'margin-top:8px');
-    return H('Olá, Rafael!') + '<h2 style="margin:4px 24px 0">Status</h2>' +
-      '<div class="card" style="margin-top:8px"><h3 data-id="nome">Rafael Almeida Nogueira</h3>' +
+    return H('Olá, ' + esc(nome1()) + '!') + '<h2 style="margin:4px 24px 0">Status</h2>' +
+      '<div class="card" style="margin-top:8px"><h3 data-id="nome">' + esc(nomeCompleto()) + '</h3>' +
       '<div style="display:flex;margin-top:14px">' + tag(cdiTag(s)) + '</div>' + b +
       (s === 'expired' ? '<p class="cap warn" style="margin:8px 0 0">' + WARN_TRIED + '</p>' : '') +
       (s === 'ready' ? '<p class="cap" style="margin:8px 0 0">✓ Pagamento confirmado</p>' : '') +
@@ -197,7 +200,7 @@
       return '<div class="menu-row"' + (d ? ' data-go="' + d + '"' : '') + ' data-id="' + id + '"><span>' + t + '</span><i></i></div>';
     };
     return '<h2 style="margin:38px 24px 0">Perfil</h2>' +
-      '<div class="card" style="margin-top:8px;height:191px"><div style="display:flex;align-items:center;gap:12px;height:44px"><div style="width:36px;height:36px;border-radius:50%;background:var(--neutral-200);flex:none"></div><div><h3>Rafael Almeida Nogueira</h3><div class="label">Rafael@email.com</div></div></div>' +
+      '<div class="card" style="margin-top:8px;height:191px"><div style="display:flex;align-items:center;gap:12px;height:44px"><div style="width:36px;height:36px;border-radius:50%;background:var(--neutral-200);flex:none"></div><div><h3>' + esc(nomeCompleto()) + '</h3><div class="label">' + esc(nome1().toLowerCase()) + '@email.com</div></div></div>' +
       '<div class="divider" style="margin-top:18px"></div><div style="margin-top:16px">' + row('Pagamentos', 'item_pagamentos', pay) + row('Editar perfil', 'item_editar_perfil') + '</div></div>' +
       '<div class="card" style="margin-top:8px;padding-bottom:24px"><h3>Preferências</h3>' + row('Configurações', 'item_configuracoes') + row('Tema', 'item_tema') + row('Termos e privacidade', 'item_termos') + '</div>' +
       '<div class="card line" style="margin-top:40px;padding:6px 16px">' + '<div class="menu-row" data-id="btn_sair"><span>Sair</span><i></i></div></div>';

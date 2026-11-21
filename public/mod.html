@@ -36,6 +36,10 @@
     <button data-flag="ajuda">Com ajuda</button>
     <button data-flag="abandonou">Abandonou</button>
     <br>
+    <input id="nm" placeholder="Primeiro nome da pessoa" size="22" maxlength="20">
+    <button class="sec" id="setnm">Definir nome no app</button>
+    <small class="msg">Só com o OK da pessoa. Só o primeiro nome; não vai para o log. Vazio = persona Rafael.</small>
+    <br>
     <input id="note" placeholder="Nota rápida (opcional)" size="32">
     <button class="sec" data-flag="nota">Salvar nota</button>
     <span class="msg" id="msg"></span>
@@ -96,6 +100,10 @@
           .then(function (r) { msg.textContent = r.ok ? 'Salvo' : 'Erro ao salvar'; document.getElementById('note').value = ''; load(); })
           .catch(function () { msg.textContent = 'Erro ao salvar'; });
       });
+    });
+    document.getElementById('setnm').addEventListener('click', function () {
+      fetch('/api/gate?t=' + encodeURIComponent(T), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ p: sel.value, action: 'nome', nome: document.getElementById('nm').value }) })
+        .then(function (r) { msg.textContent = r.ok ? 'Nome definido para ' + sel.value : 'Erro ao salvar o nome'; });
     });
     load();
     setInterval(load, 3000);

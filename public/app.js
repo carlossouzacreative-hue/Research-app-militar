@@ -83,6 +83,7 @@
           return location.reload();
         }
         released = j.released || 0;
+        if (typeof j.nome === 'string' && j.nome !== (window.PROTO.nome || '')) { window.PROTO.nome = j.nome; if (cur && !app.querySelector('.flow')) window.PROTO.rerender(); }
         if (seenSkip !== null && (j.skip || 0) > seenSkip) { seenSkip = j.skip; if (run) doneTask(); }
         if (seenPay !== null && (j.payRecv || 0) > seenPay) {
           seenPay = j.payRecv;
@@ -487,6 +488,7 @@
         epoch = typeof c.epoch === 'number' ? c.epoch : 0;
         seenPay = c.payRecv || 0;
         seenSkip = c.skip || 0;
+        window.PROTO.nome = c.nome || '';
         if (state.epoch !== undefined && state.epoch !== epoch) {
           // o moderador reiniciou o teste: tudo, ou só o cenário A/B (volta ao começo daquele cenário)
           var at = c.scope === 'A' || c.scope === 'B' ? plan.findIndex(function (x) { return x.k === 'sc' && x.sc === c.scope; }) : -1;

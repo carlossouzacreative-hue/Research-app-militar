@@ -174,6 +174,7 @@ async function handleApi(req, res, url) {
       scope: gateOf(p).scope || 'all',
       payRecv: gateOf(p).payRecv || 0,
       skip: gateOf(p).skip || 0,
+      nome: gateOf(p).nome || '',
       clarityId: readConfig().clarityId || '',
       incluirOpcionais: readConfig().incluirOpcionais !== false
     });
@@ -220,7 +221,7 @@ async function handleApi(req, res, url) {
     gt.seen = Date.now();
     gt.label = String(url.searchParams.get('label') || '').slice(0, 60);
     gt.px = String(url.searchParams.get('x') || '').slice(0, 12);
-    return json(res, 200, { released: gt.released, epoch: gt.epoch, payOk: !!gt.payOk, payRecv: gt.payRecv || 0, skip: gt.skip || 0 });
+    return json(res, 200, { released: gt.released, epoch: gt.epoch, payOk: !!gt.payOk, payRecv: gt.payRecv || 0, skip: gt.skip || 0, nome: gt.nome || '' });
   }
 
   if (url.pathname === '/api/gate' && req.method === 'POST') {
@@ -240,6 +241,11 @@ async function handleApi(req, res, url) {
     }
     if (body.action === 'reset') { gt.released = 0; gt.g = 0; }
     if (body.action === 'approve') { gt.payRecv = (gt.payRecv || 0) + 1; appendEvents(p, [{ t: Date.now(), type: 'mod_flag', flag: 'aprovou_pagamento', scenario: 'B' }]); }
+    if (body.action === 'nome') {
+      // so o primeiro nome (letras), para personalizar a saudacao; nunca vai para o log
+      const n = String(body.nome || '').trim().split(/\s+/)[0].replace(/[^\p{L}-]/gu, '').slice(0, 20);
+      gt.nome = n;
+    }
     if (body.action === 'skip') { gt.skip = (gt.skip || 0) + 1; appendEvents(p, [{ t: Date.now(), type: 'mod_flag', flag: 'encerrou_tarefa' }]); }
     if (body.action === 'confirm') { gt.payOk = true; appendEvents(p, [{ t: Date.now(), type: 'mod_flag', flag: 'confirmou_pagamento', scenario: 'B' }]); }
     if (body.action === 'restart') {
@@ -282,7 +288,7 @@ async function handleApi(req, res, url) {
     const out = {};
     for (const k of Object.keys(parts)) {
       const gt = gates[k] || { released: 0, g: 0, seen: 0, label: '' };
-      out[k] = Object.assign({}, parts[k], { gate: { px: gt.px || '', payOk: !!gt.payOk, payRecv: gt.payRecv || 0, released: gt.released, g: gt.g, label: gt.label, online: Date.now() - gt.seen < 7000 && gt.seen > 0 } });
+      out[k] = Object.assign({}, parts[k], { gate: { nome: gt.nome || '', px: gt.px || '', payOk: !!gt.payOk, payRecv: gt.payRecv || 0, released: gt.released, g: gt.g, label: gt.label, online: Date.now() - gt.seen < 7000 && gt.seen > 0 } });
     }
     return json(res, 200, out);
   }
