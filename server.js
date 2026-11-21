@@ -242,8 +242,8 @@ async function handleApi(req, res, url) {
     if (body.action === 'reset') { gt.released = 0; gt.g = 0; }
     if (body.action === 'approve') { gt.payRecv = (gt.payRecv || 0) + 1; appendEvents(p, [{ t: Date.now(), type: 'mod_flag', flag: 'aprovou_pagamento', scenario: 'B' }]); }
     if (body.action === 'nome') {
-      // so o primeiro nome (letras), para personalizar a saudacao; nunca vai para o log
-      const n = String(body.nome || '').trim().split(/\s+/)[0].replace(/[^\p{L}-]/gu, '').slice(0, 20);
+      // nome como a pessoa quiser ver (ate 4 palavras, so letras); personaliza o app e nunca vai para o log
+      const n = String(body.nome || '').trim().split(/\s+/).slice(0, 4).map(w => w.replace(/[^\p{L}'-]/gu, '')).filter(Boolean).join(' ').slice(0, 40);
       gt.nome = n;
     }
     if (body.action === 'skip') { gt.skip = (gt.skip || 0) + 1; appendEvents(p, [{ t: Date.now(), type: 'mod_flag', flag: 'encerrou_tarefa' }]); }
