@@ -9,10 +9,9 @@
     * { box-sizing: border-box; }
     body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; margin: 0; padding: 0; color: #172030; background: #f2f2f2; }
     .wrap { display: flex; align-items: flex-start; gap: 16px; padding: 16px; }
-    .main { flex: 1 1 0; min-width: 0; order: 2; zoom: 1.45; }
+    .main { flex: 1 1 0; min-width: 0; order: 2; zoom: 1.1; }
     .side { flex: 0 0 600px; order: 1; position: sticky; top: 0; height: 100vh; margin: -16px 0 -16px -16px; }
     .side iframe { width: 100%; height: 100%; border: 0; border-right: 1px solid #d0d0d0; background: #f2f2f2; }
-    @media (max-width: 1300px) { .main { zoom: 1.1; } }
     @media (max-width: 1100px) { .main { zoom: 1; } .wrap { display: block; } .side { position: static; height: 560px; margin: 16px 0 0; } .side iframe { border: 1px solid #d0d0d0; border-radius: 10px; } }
     h1 { font-size: 20px; margin: 0 0 4px; }
     h2 { font-size: 16px; margin: 20px 0 8px; }
@@ -39,8 +38,8 @@
     @media (max-width: 560px) { .grid { grid-template-columns: 1fr; } }
     label { font-size: 12px; color: #576175; display: block; margin: 4px 0 2px; }
     .cnt button { padding: 4px 12px; cursor: pointer; }
-    .read { border-left: 4px solid #172030; background: #eef1f6; padding: 8px 12px; margin: 6px 0 10px; border-radius: 0 8px 8px 0; font-size: 14px; line-height: 1.45; }
-    .read b { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: #576175; margin-bottom: 2px; }
+    .read { border-left: 5px solid #172030; background: #eef1f6; padding: 14px 18px; margin: 8px 0 14px; border-radius: 0 10px 10px 0; font-size: 24px; line-height: 1.55; }
+    .read b { display: block; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: #576175; margin-bottom: 2px; }
     .do { font-size: 13px; margin: 4px 0; color: #172030; }
     .do span { color: #576175; }
     details { background: #fff; border-radius: 10px; padding: 10px 12px; margin-bottom: 10px; }
@@ -54,7 +53,7 @@
     .top { position: sticky; top: 0; background: #f2f2f2; padding: 8px 0; z-index: 5; }
     h2 { border-top: 1px solid #d8d8d8; padding-top: 14px; }
     code { background: #e9e9e9; padding: 1px 5px; border-radius: 4px; font-size: 12px; }
-    .q { font-size: 14px; font-weight: 600; margin: 10px 0 2px; }
+    .q { font-size: 22px; font-weight: 600; margin: 16px 0 4px; line-height: 1.4; }
   </style>
 </head>
 <body>
