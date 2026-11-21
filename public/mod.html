@@ -23,7 +23,7 @@
   </style>
 </head>
 <body>
-  <h1>Painel do moderador</h1>
+  <h1>Painel do moderador <a id="lnk" href="#" style="font-size:14px;font-weight:400;margin-left:8px" target="_blank">Abrir Anotações</a></h1>
   <table>
     <thead><tr><th>Participante</th><th>Agora</th><th>Ordem</th><th>Cenário A</th><th>Cenário B</th><th>Liberar</th></tr></thead>
     <tbody id="rows"><tr><td colspan="6">Carregando…</td></tr></tbody>
@@ -48,6 +48,7 @@
   <script src="tasks.js"></script>
   <script>
     var T = new URLSearchParams(location.search).get('t') || '';
+    document.getElementById('lnk').href = 'notas.html?t=' + encodeURIComponent(T);
     var rows = document.getElementById('rows');
     var sel = document.getElementById('p');
     var msg = document.getElementById('msg');

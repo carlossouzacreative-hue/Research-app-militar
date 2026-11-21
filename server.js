@@ -18,8 +18,10 @@ const SESSIONS = path.join(DATA, 'sessions');
 const PARTS = path.join(DATA, 'participantes.json');
 const TOKEN_FILE = path.join(DATA, 'token.txt');
 const GATES = path.join(DATA, 'gates.json');
+const NOTAS = path.join(DATA, 'notas');
 
 fs.mkdirSync(SESSIONS, { recursive: true });
+fs.mkdirSync(NOTAS, { recursive: true });
 
 // participantes.json real (fica em data/, fora do Git). Nasce do arquivo de exemplo.
 if (!fs.existsSync(PARTS)) {
@@ -280,6 +282,25 @@ async function handleApi(req, res, url) {
     }
     saveGates();
     return json(res, 200, { ok: true, released: gt.released });
+  }
+
+  // anotacoes do moderador por participante (notas.html): nota 1-7, resultado e observacao por tarefa, perfil, sugestoes
+  if (url.pathname === '/api/notas') {
+    if (!tokenOk(url)) return json(res, 403, { erro: 'token invalido' });
+    if (req.method === 'GET') {
+      const p = safeId(url.searchParams.get('p'));
+      if (!p) return json(res, 400, { erro: 'participante invalido' });
+      try { return json(res, 200, JSON.parse(fs.readFileSync(path.join(NOTAS, p + '.json'), 'utf8'))); } catch (e) { return json(res, 200, {}); }
+    }
+    if (req.method === 'POST') {
+      let body;
+      try { body = JSON.parse(await readBody(req, 100 * 1024)); } catch (e) { return json(res, 400, { erro: 'json invalido' }); }
+      const p = safeId(body && body.p);
+      if (!p || !body.data || typeof body.data !== 'object') return json(res, 400, { erro: 'dados invalidos' });
+      body.data.atualizado = Date.now();
+      fs.writeFileSync(path.join(NOTAS, p + '.json'), JSON.stringify(body.data, null, 2));
+      return json(res, 200, { ok: true });
+    }
   }
 
   if (url.pathname === '/api/status' && req.method === 'GET') {

@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Anotações do moderador</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; margin: 0; padding: 16px; color: #172030; background: #f2f2f2; max-width: 760px; }
+    h1 { font-size: 20px; margin: 0 0 4px; }
+    h2 { font-size: 16px; margin: 20px 0 8px; }
+    .top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+    select, input, textarea, button { font: inherit; padding: 8px 10px; border-radius: 8px; border: 1px solid #c9c9c9; background: #fff; color: #172030; }
+    textarea { width: 100%; min-height: 56px; resize: vertical; }
+    input[type=text] { width: 100%; }
+    .card { background: #fff; border-radius: 10px; padding: 12px; margin-bottom: 10px; border: 2px solid transparent; }
+    .card.now { border-color: #172030; }
+    .card h3 { font-size: 15px; margin: 0 0 2px; }
+    .mis { font-size: 13px; color: #576175; margin-bottom: 8px; }
+    .badge { display: inline-block; font-size: 12px; padding: 2px 8px; border-radius: 999px; background: #e5e5e5; margin-left: 6px; font-weight: 400; }
+    .badge.on { background: #172030; color: #fff; }
+    .row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin: 6px 0; }
+    .lab { font-size: 12px; color: #576175; min-width: 70px; }
+    .seg button { padding: 6px 10px; margin: 0; border-radius: 0; border-right-width: 0; cursor: pointer; }
+    .seg button:first-child { border-radius: 8px 0 0 8px; }
+    .seg button:last-child { border-radius: 0 8px 8px 0; border-right-width: 1px; }
+    .seg button.on { background: #172030; color: #fff; border-color: #172030; }
+    .sc { font-size: 13px; font-weight: 600; letter-spacing: .02em; color: #576175; margin: 18px 0 6px; text-transform: uppercase; }
+    .sm { font-size: 12px; color: #576175; }
+    .saved { font-size: 13px; color: #1a7f37; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    @media (max-width: 560px) { .grid { grid-template-columns: 1fr; } }
+    label { font-size: 12px; color: #576175; display: block; margin: 4px 0 2px; }
+    .cnt button { padding: 4px 12px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h1>Anotações</h1>
+  <div class="top">
+    <select id="p"></select>
+    <span id="pres" class="sm"></span>
+    <span id="sv" class="saved"></span>
+  </div>
+  <div id="doc"></div>
+
+  <script src="tasks.js"></script>
+  <script>
+    var T = new URLSearchParams(location.search).get('t') || '';
+    var $ = function (i) { return document.getElementById(i); };
+    var sel = $('p'), doc = $('doc'), sv = $('sv');
+    var D = {}, cur = '', ST = {}, timer = null;
+
+    function el(tag, cls, txt) { var e = document.createElement(tag); if (cls) e.className = cls; if (txt !== undefined) e.textContent = txt; return e; }
+
+    function save() {
+      clearTimeout(timer); sv.textContent = 'salvando…';
+      timer = setTimeout(function () {
+        fetch('/api/notas?t=' + encodeURIComponent(T), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ p: cur, data: D }) })
+          .then(function (r) { sv.textContent = r.ok ? 'salvo ✓' : 'erro ao salvar'; })
+          .catch(function () { sv.textContent = 'erro ao salvar'; });
+      }, 500);
+    }
+    function setD(path, v) {
+      var o = D;
+      for (var i = 0; i < path.length - 1; i++) { o = o[path[i]] = o[path[i]] || {}; }
+      o[path[path.length - 1]] = v; save();
+    }
+    function getD(path) {
+      var o = D;
+      for (var i = 0; i < path.length; i++) { if (o == null) return ''; o = o[path[i]]; }
+      return o == null ? '' : o;
+    }
+    function field(label, path, multi, ph) {
+      var w = el('div'); w.appendChild(el('label', '', label));
+      var f = el(multi ? 'textarea' : 'input'); if (!multi) f.type = 'text'; if (ph) f.placeholder = ph;
+      f.value = getD(path); f.addEventListener('input', function () { setD(path, f.value); });
+      w.appendChild(f); return w;
+    }
+    function seg(label, path, opts, title) {
+      var r = el('div', 'row'); r.appendChild(el('span', 'lab', label));
+      var g = el('div', 'seg'), btns = [];
+      opts.forEach(function (o) {
+        var b = el('button', '', o); b.type = 'button'; if (title && title[o]) b.title = title[o];
+        if (String(getD(path)) === o) b.className = 'on';
+        b.addEventListener('click', function () {
+          var on = String(getD(path)) === o; setD(path, on ? '' : o);
+          btns.forEach(function (x) { x.className = ''; }); if (!on) b.className = 'on';
+        });
+        btns.push(b); g.appendChild(b);
+      });
+      r.appendChild(g); return r;
+    }
+    function counter(label, path) {
+      var r = el('div', 'row cnt'); r.appendChild(el('span', 'lab', label));
+      var m = el('button', '', '−'), n = el('strong', '', String(getD(path) || 0)), pl = el('button', '', '+');
+      m.type = pl.type = 'button';
+      m.addEventListener('click', function () { var v = Math.max(0, (+getD(path) || 0) - 1); setD(path, v); n.textContent = v; });
+      pl.addEventListener('click', function () { var v = (+getD(path) || 0) + 1; setD(path, v); n.textContent = v; });
+      r.appendChild(m); r.appendChild(n); r.appendChild(pl); return r;
+    }
+
+    function build() {
+      doc.innerHTML = '';
+      var rec = ST[cur] || {}, ordem = String(rec.ordem || 'AB').toUpperCase() === 'BA' ? ['B', 'A'] : ['A', 'B'];
+
+      doc.appendChild(el('h2', '', 'Perfil (perguntas iniciais)'));
+      var pf = el('div', 'card'), g = el('div', 'grid');
+      g.appendChild(field('Idade', ['perfil', 'idade'], false));
+      g.appendChild(field('Dispositivo', ['perfil', 'dispositivo'], false));
+      g.appendChild(field('Já usou app do governo? Qual?', ['perfil', 'appGov'], false));
+      g.appendChild(field('Já precisou de documento do exército? Como foi?', ['perfil', 'docEx'], false));
+      pf.appendChild(g);
+      pf.appendChild(seg('Nome no app', ['perfil', 'nomeOk'], ['Sim', 'Não']));
+      doc.appendChild(pf);
+
+      ordem.forEach(function (sc, i) {
+        doc.appendChild(el('div', 'sc', (i + 1) + 'º cenário: ' + sc));
+        (window.TASKS[sc] || []).forEach(function (t) {
+          var c = el('div', 'card'); c.setAttribute('data-t', t.id);
+          var h = el('h3', '', t.id); var b = el('span', 'badge', ''); b.setAttribute('data-b', t.id); h.appendChild(b); c.appendChild(h);
+          c.appendChild(el('div', 'mis', '“' + t.texto + '”'));
+          c.appendChild(seg('Resultado', ['tarefas', t.id, 'res'], ['Sim', 'Com ajuda', 'Não']));
+          c.appendChild(seg('Nota', ['tarefas', t.id, 'nota'], ['1', '2', '3', '4', '5', '6', '7'], { 1: 'muito difícil', 7: 'muito fácil' }));
+          c.appendChild(el('div', 'sm', '1 = muito difícil · 7 = muito fácil'));
+          c.appendChild(counter('Toques errados', ['tarefas', t.id, 'toques']));
+          c.appendChild(field('Frase literal / o que a pessoa disse', ['tarefas', t.id, 'frase'], true));
+          c.appendChild(field('O que mudar', ['tarefas', t.id, 'mudar'], false));
+          doc.appendChild(c);
+        });
+      });
+
+      doc.appendChild(el('h2', '', 'Sugestões da pessoa'));
+      var sg = el('div', 'card'); sg.appendChild(field('Anote conforme ela falar', ['sugestoes'], true)); doc.appendChild(sg);
+
+      doc.appendChild(el('h2', '', 'Perguntas finais'));
+      var fm = el('div', 'card');
+      fm.appendChild(field('O que foi mais confuso?', ['fim', 'confuso'], true));
+      fm.appendChild(field('O que você esperava ver e não viu?', ['fim', 'esperava'], true));
+      fm.appendChild(field('Em uma palavra, como foi a experiência?', ['fim', 'palavra'], false));
+      doc.appendChild(fm);
+      mark();
+    }
+
+    // marca a tarefa que a pessoa esta fazendo agora (sem recriar os campos)
+    function mark() {
+      var g = (ST[cur] || {}).gate || {}, lb = g.label || '', m = lb.match(/(?:Fazendo|Concluiu|Aguardando liberar) ([AB]\d)/), id = m && m[1];
+      $('pres').textContent = !g.online ? 'offline' : '● no site · ' + (lb || '');
+      Array.prototype.forEach.call(doc.querySelectorAll('.card[data-t]'), function (c) {
+        var on = !!id && c.getAttribute('data-t') === id; c.classList.toggle('now', on);
+        var b = c.querySelector('[data-b]'); b.textContent = on ? lb : ''; b.className = on ? 'badge on' : 'badge';
+      });
+    }
+
+    function openP(p) {
+      cur = p; sv.textContent = '';
+      fetch('/api/notas?t=' + encodeURIComponent(T) + '&p=' + encodeURIComponent(p), { cache: 'no-store' })
+        .then(function (r) { return r.json(); }).then(function (d) { D = d || {}; build(); });
+    }
+    function poll() {
+      fetch('/api/status?t=' + encodeURIComponent(T), { cache: 'no-store' }).then(function (r) { if (!r.ok) throw 0; return r.json(); }).then(function (s) {
+        ST = s;
+        if (!sel.options.length) {
+          Object.keys(s).forEach(function (k) { var o = el('option', '', k); sel.appendChild(o); });
+          if (sel.options.length) openP(sel.value);
+        } else mark();
+      }).catch(function () { $('pres').textContent = 'Token inválido. Use o link completo.'; });
+    }
+    sel.addEventListener('change', function () { openP(sel.value); });
+    poll(); setInterval(poll, 3000);
+  </script>
+</body>
+</html>
