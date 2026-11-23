@@ -128,8 +128,8 @@
     var META = {
       A1: { ok: 'O agendamento é confirmado na tela de sucesso.', faz: 'Nada: não diga onde clicar.' },
       A2: { ok: 'Encontra data e horário do agendamento.', faz: 'Nada.' },
-      B1: { ok: 'Gera o Pix e vê o aviso de Pix expirado (expira em 10 segundos, de propósito).', faz: 'Nada: não explique o aviso.' },
-      B2: { ok: 'Gera outro Pix e, depois da sua aprovação, vê "Pagamento recebido".', faz: 'Quando ela disser que pagou, toque em "Aprovar pagamento" (só liga com o Pix aberto na tela). Não ajude a achar o Pix: ela deve ir em Documentos.' },
+      B1: { ok: 'Gera o Pix e vê o Pix expirar sozinho (10 segundos, de propósito) e entende o que aconteceu. Só depois do "Terminei" o app explica que foi de propósito (botão libera em 5 segundos).', faz: 'Nada: não explique. Antes da nota, pergunte: "O que aconteceu com o Pix? Você foi cobrado?" e anote a resposta literal.' },
+      B2: { ok: 'Gera outro Pix e, depois da sua aprovação, vê "Pagamento recebido".', faz: 'Observe o primeiro toque depois de começar: como ela chega a "Gerar novo Pix" (recuperação). Quando ela disser que pagou, toque em "Aprovar pagamento" (só liga com o Pix aberto na tela). Não ajude a achar o Pix: ela deve ir em Documentos.' },
       B3: { ok: 'O card muda sozinho para disponível, ela emite o CDI e chega em "Concluído".', faz: 'Nada a liberar: observe se ela percebe a mudança sem você falar.' },
       B4: { ok: 'Chega à tela Pagamentos (Perfil).', faz: 'Nada: não diga onde fica.' }
     };
@@ -193,7 +193,7 @@
       doc.appendChild(pf);
 
       doc.appendChild(el('h2', '', '4. Tarefas'));
-      doc.appendChild(el('div', 'sm', 'Para cada tarefa: confira que a pessoa está "no site" e na tarefa certa → leia a missão com as mesmas palavras e toque em "Liberar" → observe sem ajudar → quando o app mostrar "Tarefa concluída", peça que toque em "Terminei a tarefa" → pergunte: "De 1 a 7, o quanto foi fácil?" (1 = muito difícil, 7 = muito fácil).'));
+      doc.appendChild(el('div', 'sm', 'Para cada tarefa: confira que a pessoa está "no site" e na tarefa certa → leia a missão com as mesmas palavras e toque em "Liberar" → observe sem ajudar → quando o app mostrar "Tarefa concluída", faça a pergunta da nota: "De 1 a 7, o quanto foi fácil?" (1 = muito difícil, 7 = muito fácil) e só depois peça que toque em "Terminei a tarefa".'));
 
       ordem.forEach(function (sc, i) {
         doc.appendChild(el('div', 'sc', (i + 1) + 'º cenário: ' + sc));

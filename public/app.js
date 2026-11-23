@@ -338,8 +338,29 @@
     state.ti += 1;
     app.classList.remove('frozen');
     saveState();
+    var tid = run.task.id;
     cur = null;
+    if (tid === 'B1') return showPixReveal();
     showTaskCard();
+  }
+  // Depois da B1: so agora a pessoa fica sabendo que o Pix expirou de proposito. O botao so libera apos 5 s, para dar tempo de ler.
+  function showPixReveal() {
+    run = null;
+    flowScreen(
+      '<p class="caption">Sobre a tarefa anterior</p>' +
+        '<h1>O Pix expirou de propósito</h1>' +
+        '<p>Neste teste, o primeiro Pix dura poucos segundos para vermos como é retomar um pagamento que não deu certo. Em um aplicativo de verdade, o prazo seria de 30 minutos.</p>' +
+        '<p class="info">Nenhuma cobrança foi feita.</p>' +
+        '<button class="btn disabled" data-flow data-act="pix-go" data-locked="1"><span class="dd"><i>.</i><i>.</i><i>.</i></span></button>'
+    );
+    curLabel = 'Lendo o aviso do Pix (depois da B1)';
+    log('pix_reveal_shown', ctx());
+    beat();
+    setTimeout(function () {
+      var b = app.querySelector('[data-act="pix-go"]');
+      if (!b) return;
+      b.removeAttribute('data-locked'); b.classList.remove('disabled'); b.textContent = 'Continuar';
+    }, 5000);
   }
 
   function enterScenario(sc) {
@@ -420,6 +441,7 @@
       }
       if (a === 'sc-go') return showTaskCard();
       if (a === 'task-start') return startTask();
+      if (a === 'pix-go') return showTaskCard();
       if (a === 'done') return doneTask();
     }
     if (el.closest('[data-flow]')) return;

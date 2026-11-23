@@ -146,7 +146,7 @@
       : go('Pagar taxa', 'btn_pagar_taxa', dest, '', 'margin-top:8px');
     return H('Olá, ' + esc(nome1()) + '!') + '<h2 style="margin:4px 24px 0">Status</h2>' +
       '<div class="card" style="margin-top:8px"><h3 data-id="nome">' + esc(nomeCompleto()) + '</h3>' +
-      '<div style="display:flex;margin-top:14px">' + tag(cdiTag(s)) + '</div>' + b +
+      '<div style="display:flex;margin-top:14px">' + tag(s === 'expired' ? 'Pix do CDI expirado' : cdiTag(s)) + '</div>' + b +
       (s === 'expired' ? '<p class="cap warn" style="margin:8px 0 0">' + WARN_TRIED + '</p>' : '') +
       (s === 'ready' ? '<p class="cap" style="margin:8px 0 0">✓ Pagamento confirmado</p>' : '') +
       '</div>' + sections(act('Conta gov.br verificada', '12/11/2026', 'Online'));
@@ -370,7 +370,7 @@
         '<div class="field" style="margin:2px 24px 0" data-id="codigo_pix"><span class="v">' + PIX_CODE + '</span></div>' +
         '<div class="btn" data-tap="copy" data-copy="' + PIX_CODE + '" data-id="btn_copiar_pix" style="margin:12px 31px 0;width:auto">Copiar codigo Pix</div>' +
         '<p class="label c" style="text-align:center;margin:24px 46px 0">Após pagar, a confirmação aparece nesta tela. Não pague duas vezes: use sempre o mesmo Pix.</p>' +
-        '<p class="cap warn" style="text-align:center;margin:12px 46px 0">' + ((P.pix.n || 1) <= 1 ? 'Teste: este Pix expira em poucos segundos de propósito, para testarmos a retomada do pagamento.' : 'Teste: quem libera o pagamento é o moderador. Avise-o quando tiver pago.') + '</p>');
+        ((P.pix.n || 1) <= 1 ? '' : '<p class="cap warn" style="text-align:center;margin:12px 46px 0">Teste: quem libera o pagamento é o moderador. Avise-o quando tiver pago.</p>'));
     },
     // confirmação em bottom sheet (usada a partir do 2º Pix, depois de expirar)
     B05P: function () {
