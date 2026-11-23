@@ -167,10 +167,8 @@
   function showIntro() {
         flowScreen(
       '<h1>Antes de começar</h1>' +
-        '<p><b>Este é um teste limitado.</b> Só algumas partes do aplicativo foram construídas, e muita coisa do app real não está disponível aqui.</p>' +
-        '<p><b>Seu objetivo principal: emitir o CDI.</b> Vamos testar o fluxo juntos, uma tarefa de cada vez.</p>' +
-        '<p>O que você vai usar é um <b>modelo de média fidelidade</b>. Por isso tem poucas cores e algumas coisas não vão responder quando você tocar.</p>' +
-        '<p>Isso é proposital: estamos testando as funcionalidades, não um aplicativo pronto. Se tocar em algo que não funciona, tudo bem. Só diga o que esperava que acontecesse.</p>' +
+        '<p><b>Isto é um protótipo, não um aplicativo completo.</b> Só algumas partes foram construídas, e algumas coisas não vão responder quando você tocar.</p>' +
+        '<p>Se tocar em algo que não funciona, tudo bem. Só diga o que esperava que acontecesse.</p>' +
         '<p class="caption">Projeto acadêmico de UX. Dados fictícios. Sem vínculo com o Exército Brasileiro.</p>' +
         '<p class="wait">Aguarde: o moderador vai liberar quando for a hora.</p>' +
         '<button class="btn disabled" data-flow data-act="start" data-locked="1" data-label="Começar">Aguardando o moderador…</button>'
