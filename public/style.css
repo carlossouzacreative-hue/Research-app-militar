@@ -134,6 +134,7 @@ select.inp:invalid, select.inp.ph { color: var(--text-disabled); }
 
 /* Telas do Pix */
 .topbar { position: relative; height: 28px; margin: 0; }
+.topbar .back::after { content: ""; position: absolute; left: -24px; right: -8px; top: 50%; height: 48px; transform: translateY(-50%); }
 .topbar .back { position: absolute; left: 24px; top: -4px; width: 44px; height: 36px; display: flex; align-items: center; font: 400 24px/36px var(--font); color: var(--title); cursor: pointer; }
 .topbar h2 { text-align: center; }
 .qr { position: relative; width: 220px; height: 220px; margin: 12px auto 0; background: #e6e6e6; border: 1px solid #bdbdbd; display: flex; align-items: center; justify-content: center; font: 400 14px/20px var(--font); color: var(--text-secondary); }
@@ -151,7 +152,8 @@ select.inp:invalid, select.inp.ph { color: var(--text-disabled); }
 .tl .r::before { content: ""; position: absolute; left: 8px; top: 30px; width: 2px; height: 22px; background: #d0d0d0; }
 .tl .r.d::before { background: var(--text-secondary); }
 .tl .r:last-child::before { display: none; }
-.pill-back { display: inline-flex; align-items: center; gap: 6px; height: 28px; margin-left: 17px; font: 400 16px/24px var(--font); cursor: pointer; }
+.pill-back { position: relative; display: inline-flex; align-items: center; gap: 6px; height: 28px; margin-left: 17px; font: 400 16px/24px var(--font); cursor: pointer; }
+.pill-back::after { content: ""; position: absolute; left: -17px; right: -8px; top: 50%; height: 44px; transform: translateY(-50%); }
 .pill-back i { width: 16px; height: 16px; border-radius: 50%; background: var(--neutral-200); }
 .menu-row { display: flex; align-items: center; justify-content: space-between; height: 40px; font: 400 16px/24px var(--font); color: var(--text-secondary); cursor: pointer; }
 .menu-row i { width: 12px; height: 12px; border-radius: 50%; background: var(--tab-dot); }
