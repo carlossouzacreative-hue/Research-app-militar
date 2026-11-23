@@ -146,10 +146,12 @@
       'Leia as missões sempre com as mesmas palavras.',
       'Se algo não responder, lembre que o teste é limitado e peça que diga o que esperava.',
       'Deixe a pessoa livre para explorar e tentar a missão do jeito que preferir. Registre os caminhos inesperados.',
-      'Se ela travar por mais de 2 minutos, dê uma dica mínima e marque "Com ajuda". Se desistir, use "Encerrar tarefa" no painel.',
+      'Escada de ajuda: (1) "O que você está tentando fazer?" (2) "Onde você esperaria encontrar isso?" (3) dica direta, marcada como "Com ajuda". Os degraus 1 e 2 não contam como ajuda. Tempo máximo de 5 minutos por tarefa.',
       'Amigos tendem a ser gentis demais: peça críticas abertamente.'
     ];
     var ABERTURA = 'Esse é um app fictício, um protótipo de média fidelidade usado apenas para fins acadêmicos, e o teste é limitado, somente algumas partes funcionam. Se clicar em algo que não funciona, apenas me diga em voz alta o que você esperava que acontecesse. Sinta-se livre para explorar e você pode parar o teste quando quiser. Eu só preciso que leia as instruções com calma e faça algumas missões, o app vai te instruir. Não precisa ter pressa ou medo de errar, a avaliação é do app e não de você. Se tiver algo que você não gostou ou achou confuso, preciso que me fale. Ao terminar a missão, o app mostra um botão para avançar para a próxima etapa. O teste é dividido em duas etapas, cenário A e cenário B, e pode parecer confuso porque ele vai pedir para fazer a mesma ação mais de uma vez, mas é normal. Depois de cada missão eu vou te perguntar uma nota de 1 a 7 para o quanto foi fácil, sendo 1 muito difícil e 7 muito fácil, então já pode ir pensando nisso. Vou gravar a tela apenas para análise das respostas e ações, tudo bem?';
+    var CONSENT = 'Antes de começar, preciso do seu ok para algumas coisas. Vou gravar a tela e o áudio da nossa chamada, e o aplicativo também registra seus toques e o tempo em cada tela. Isso é só para eu analisar o teste e melhorar o projeto. Só eu vou ter acesso às gravações, e vou apagá-las depois da análise. No meu projeto você aparece só como P e um número, sem nome. Nada com a sua imagem ou a sua voz será publicado sem a sua permissão específica. Você pode parar o teste quando quiser e pedir para eu apagar o que gravei. Está combinado? Pode dizer "sim, concordo".';
+    var AQUEC = 'Enquanto usa o app, vá falando em voz alta o que está vendo, pensando e esperando que aconteça. Pode treinar agora: me conte o que você vê nesta tela.';
     var ENCERRA = 'Muito obrigado, de verdade! Lembrando que o teste foi limitado: só algumas partes do app existiam, e o de verdade tem muito mais. Tudo que você fez e falou vai me ajudar demais a melhorar a emissão de documentos. Posso parar a gravação?';
 
     function readBox(titulo, txt) { var r = el('div', 'read'); r.appendChild(el('b', '', titulo)); r.appendChild(document.createTextNode(txt)); return r; }
@@ -173,7 +175,8 @@
 
       doc.appendChild(el('h2', '', '2. Abertura'));
       doc.appendChild(readBox('Leia em voz alta', ABERTURA));
-      var ok = el('details'); ok.open = true; var ul0 = el('ul'); ul0.appendChild(chk('A pessoa deu o ok: comecei a gravar', ['checks', 'rec', '0'])); ok.appendChild(el('summary', '', 'Gravação')); ok.appendChild(ul0); doc.appendChild(ok);
+      doc.appendChild(readBox('Consentimento: leia antes de gravar', CONSENT));
+      var ok = el('details'); ok.open = true; var ul0 = el('ul'); ul0.appendChild(chk('A pessoa disse "sim, concordo" e só então comecei a gravar', ['checks', 'rec', '0'])); ok.appendChild(el('summary', '', 'Gravação')); ok.appendChild(ul0); doc.appendChild(ok);
 
       doc.appendChild(el('h2', '', '3. Perguntas iniciais'));
       doc.appendChild(el('div', 'sm', 'Leia: "Aqui vão algumas perguntas importantes:"'));
@@ -191,9 +194,10 @@
       pf.appendChild(seg('Aceitou', ['perfil', 'nomeOk'], ['Sim', 'Não']));
       pf.appendChild(el('div', 'sm', 'Se sim: digite o nome em "Definir nome no app" (painel do moderador). Nunca CPF, senha ou dado de documento.'));
       doc.appendChild(pf);
+      doc.appendChild(readBox('Aquecimento (30 segundos): leia antes da 1ª tarefa', AQUEC));
 
       doc.appendChild(el('h2', '', '4. Tarefas'));
-      doc.appendChild(el('div', 'sm', 'Para cada tarefa: confira que a pessoa está "no site" e na tarefa certa → leia a missão com as mesmas palavras e toque em "Liberar" → observe sem ajudar → quando o app mostrar "Tarefa concluída", faça a pergunta da nota: "De 1 a 7, o quanto foi fácil?" (1 = muito difícil, 7 = muito fácil) e só depois peça que toque em "Terminei a tarefa".'));
+      doc.appendChild(el('div', 'sm', 'Para cada tarefa: confira que a pessoa está "no site" e na tarefa certa → leia a missão com as mesmas palavras e toque em "Liberar" → observe sem ajudar → quando o app mostrar "Tarefa concluída", faça a pergunta da nota: "De 1 a 7, o quanto foi fácil?" (1 = muito difícil, 7 = muito fácil) e só depois peça que toque em "Terminei a tarefa". Se ela travar: (1) "O que você está tentando fazer?" (2) "Onde você esperaria encontrar isso?" (3) dica direta e marque "Com ajuda". Máximo de 5 minutos por tarefa; depois disso, ou se desistir, use "Encerrar tarefa" e marque "Não".'));
 
       ordem.forEach(function (sc, i) {
         doc.appendChild(el('div', 'sc', (i + 1) + 'º cenário: ' + sc));
@@ -218,10 +222,10 @@
 
       doc.appendChild(el('h2', '', '5. Perguntas finais'));
       var fm = el('div', 'card');
-      fm.appendChild(field('O que foi mais confuso?', ['fim', 'confuso'], true));
-      fm.appendChild(field('O que você esperava ver e não viu?', ['fim', 'esperava'], true));
+      fm.appendChild(field('Como foi a experiência? O que funcionou bem?', ['fim', 'confuso'], true));
+      fm.appendChild(field('O que você esperava ver e não viu? Houve algum momento em que não soube o que fazer?', ['fim', 'esperava'], true));
       fm.appendChild(field('Em uma palavra, como foi a experiência?', ['fim', 'palavra'], false));
-      fm.appendChild(field('Tem alguma sugestão? (anote conforme ela falar)', ['sugestoes'], true));
+      fm.appendChild(field('Tem alguma sugestão ou algo que você mudaria? (anote conforme ela falar)', ['sugestoes'], true));
       doc.appendChild(fm);
 
       doc.appendChild(el('h2', '', '6. Encerramento'));
