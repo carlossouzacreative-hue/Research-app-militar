@@ -210,7 +210,7 @@ async function handleApi(req, res, url) {
     // so campos esperados, tamanhos limitados
     const clean = events.map((e) => {
       const o = {};
-      for (const k of ['t', 'type', 'scenario', 'task', 'screen', 'target', 'dead', 'dur', 'result', 'flag', 'note', 'w', 'h']) {
+      for (const k of ['t', 'type', 'scenario', 'task', 'screen', 'target', 'dead', 'dur', 'result', 'flag', 'note', 'w', 'h', 'nome', 'fase']) {
         if (e[k] === undefined) continue;
         o[k] = typeof e[k] === 'string' ? e[k].slice(0, 200) : e[k];
       }

@@ -55,6 +55,8 @@ Os dados ficam em `data\` (fora do Git): `participantes.json`, `sessions\P1.json
 
 Entrada e saída de cada tela (tempo), cada toque (elemento e se foi **toque morto**, em algo que não responde), início e fim de cada tarefa, se chegou à tela de sucesso, se a pessoa tocou em "Terminei a tarefa" e as marcações do moderador. Os mesmos marcos vão para o Clarity como eventos (`A1_inicio`, `B1_sucesso_tela`…) e tags (`participante`, `cenario`, `ordem`, `tarefa`). Nos arquivos só aparecem IDs (P1, P2…), nunca nomes.
 
+**Fases (para não misturar leitura com uso):** todo evento do log tem o campo `fase`: `leitura` (apresentação, cartão da tarefa, espera do moderador, aviso do Pix), `tarefa` (a pessoa usando o protótipo, do início até a tela de sucesso) e `conclusao` (da tela de sucesso até "Terminei a tarefa"). As telas de leitura também geram o evento `leitura_<nome>` no log e no Clarity (`leitura_intro`, `leitura_cenario_A`, `leitura_cartao_A1`, `leitura_aviso_pix`, `leitura_transicao`, `leitura_fim`). Na análise do log, use só `fase = tarefa`. No Clarity, os marcadores `<tarefa>_inicio` e `<tarefa>_sucesso_tela` delimitam o trecho de uso na gravação.
+
 ## Onde ficam as telas (já vêm do Figma)
 
 - `public/screens.js`: uma entrada por tela. Use `data-go="ID"` para navegar (`back` volta), `data-tap` para elementos que reagem sem navegar, `data-ui` para ações internas (calendário, Pix) e `data-id` para dar nome ao elemento nos logs. Tudo que não tiver `data-go` ou `data-tap` conta como toque morto.

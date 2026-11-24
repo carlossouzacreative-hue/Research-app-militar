@@ -153,7 +153,13 @@
   var scenario = null;
 
   function ctx() {
-    return { scenario: scenario || undefined, task: run ? run.task.id : undefined };
+    // fase: 'leitura' (textos, espera do moderador, avisos), 'tarefa' (a pessoa usando o prototipo) ou 'conclusao' (tela de sucesso ate o "Terminei")
+    return { scenario: scenario || undefined, task: run ? run.task.id : undefined, fase: run ? (run.reached ? 'conclusao' : 'tarefa') : 'leitura' };
+  }
+  // marca o inicio de uma tela de leitura/espera: vai para o log e para o Clarity como evento "leitura_<nome>"
+  function phase(nome) {
+    log('phase', Object.assign({ nome: nome }, ctx()));
+    cl('event', 'leitura_' + nome);
   }
 
   // ---------- telas de fluxo (nao fazem parte do prototipo) ----------
@@ -174,16 +180,19 @@
         '<button class="btn disabled" data-flow data-act="start" data-locked="1" data-label="Começar">Aguardando o moderador…</button>'
     );
     curLabel = 'Aguardando liberar Início';
+    phase('intro');
     beat();
   }
   function showTransition() {
         flowScreen('<h1>Parte concluída</h1><p>Vamos para a próxima parte.</p><p class="wait">Aguarde: o moderador vai liberar quando for a hora.</p>' +
       '<button class="btn disabled" data-flow data-act="next" data-locked="1" data-label="Continuar">Aguardando o moderador…</button>');
     curLabel = 'Aguardando liberar Parte 2';
+    phase('transicao');
     beat();
   }
   function showEnd() {
     curLabel = 'Fim do teste';
+    phase('fim');
     flowScreen('<h1>Obrigado!</h1><p>Este foi um teste limitado: o protótipo tinha só algumas telas e funções, e o aplicativo de verdade tem muito mais.</p><p>O que você fez e disse aqui ajuda a melhorar a experiência de emitir documentos. Muito obrigado por participar.</p>');
   }
   function showInvalid(msg) {
@@ -201,6 +210,7 @@
         '<p class="cap warn" id="rw" style="display:none;margin:8px 0 0;font:400 12px/16px var(--font)">Leia a tela com atenção antes de continuar.</p>'
     );
     curLabel = 'Lendo apresentação do cenário ' + sc;
+    phase('cenario_' + sc);
     var left = 8, tm = setInterval(function () {
       var b = app.querySelector('[data-read]');
       if (!b) return clearInterval(tm);
@@ -225,6 +235,7 @@
         '<button class="btn disabled" data-flow data-act="task-start" data-locked="1" data-label="Começar">Aguardando o moderador…</button>'
     );
     curLabel = 'Aguardando liberar ' + t.id;
+    phase('cartao_' + t.id);
     beat();
     unlockGate();
   }
@@ -353,6 +364,7 @@
     );
     curLabel = 'Lendo o aviso do Pix (depois da B1)';
     log('pix_reveal_shown', ctx());
+    phase('aviso_pix');
     beat();
     var left = 5, tm = setInterval(function () {
       var b = app.querySelector('[data-act="pix-go"]');
