@@ -477,11 +477,32 @@
     var dest = live.getAttribute('data-go');
     if (dest) go(dest);
   });
+  // campos com lista (município, motivo, unidade): abre ao focar e filtra ao digitar
+  function filterCb(box, typed) {
+    var inp = box.querySelector('input'), q = typed ? inp.value.trim().toLowerCase() : '', n = 0;
+    Array.prototype.forEach.call(box.querySelectorAll('.o[data-ui]'), function (it) {
+      var show = !q || it.textContent.toLowerCase().indexOf(q) >= 0;
+      it.style.display = show ? '' : 'none';
+      if (show) n++;
+    });
+    var none = box.querySelector('.cb-none'); if (none) none.style.display = n ? 'none' : '';
+  }
+  app.addEventListener('focusin', function (e) {
+    var box = e.target.closest && e.target.closest('[data-cb]');
+    Array.prototype.forEach.call(app.querySelectorAll('.cb.open'), function (x) { if (x !== box) { x.classList.remove('open'); x.parentNode.style.zIndex = ''; } });
+    if (box && e.target.tagName === 'INPUT') { filterCb(box, false); box.classList.add('open'); box.parentNode.style.zIndex = 30; }
+  });
+  app.addEventListener('focusout', function (e) {
+    var box = e.target.closest && e.target.closest('[data-cb]');
+    if (box) setTimeout(function () { if (!box.contains(document.activeElement)) { box.classList.remove('open'); if (box.parentNode) box.parentNode.style.zIndex = ''; } }, 220);
+  });
   app.addEventListener('input', function (e) {
     var f = e.target.closest && e.target.closest('[data-field]');
     if (!f) return;
     var k = f.getAttribute('data-field');
     window.PROTO.form[k] = f.value;
+    f.classList.remove('err'); if (f.getAttribute('data-id') && f.closest('[data-cb]')) f.placeholder = 'Selecione';
+    var box = f.closest('[data-cb]'); if (box) filterCb(box, true);
     if (window.PROTO.errors[k]) {
       delete window.PROTO.errors[k];
       var er = f.nextElementSibling;

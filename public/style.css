@@ -111,6 +111,13 @@ h3, .h3 { font: 600 18px/24px var(--font); color: var(--title); margin: 0; }
 .fld { position: absolute; left: 31px; right: 31px; }
 .inp { display: flex; align-items: center; width: 100%; height: 39px; padding: 0 12px; border: 1px solid var(--text-disabled); border-radius: 8px; background: var(--neutral-0); font: 400 16px/24px var(--font); color: var(--text-primary); outline: 0; appearance: none; -webkit-appearance: none; }
 .inp::placeholder { color: var(--text-disabled); }
+.cb { position: relative; }
+.cb .inp { padding-right: 32px; }
+.cb .inp::placeholder { color: var(--text-primary); opacity: 1; }
+.cb::after { content: '\25BE'; position: absolute; right: 12px; top: 0; height: 39px; line-height: 39px; font-size: 14px; color: var(--text-primary); pointer-events: none; }
+.cb-list { display: none; position: absolute; left: 0; right: 0; top: 43px; z-index: 30; background: var(--neutral-0); border: 1px solid var(--neutral-200); border-radius: 8px; max-height: 164px; overflow-y: auto; }
+.cb.open .cb-list { display: block; }
+.cb-list .o:first-child { border-top: 0; }
 select.inp { color: var(--text-primary); background-image: none; }
 select.inp:invalid, select.inp.ph { color: var(--text-disabled); }
 .inp.err, .inp.err::placeholder { border-color: #b3261e; color: #b3261e; }

@@ -18,6 +18,7 @@
   var PROCESS_MS = 4000;    // tempo da "emissão em processo" depois do pagamento
   var MESES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
   var PIX_CODE = '00020126580014br.gov.bcb.pix0136exercito-cdi-ficticio-520400005303986540560.005802BR6304A1B2';
+  var LISTS = { municipio: ['Itajaí', 'Goiânia', 'Jataí', 'São Paulo', 'Rio de Janeiro'], motivo: ['Emissão de documento', 'Regularização', 'Alistamento'], unidade: ['Unidade Centro', 'Unidade Norte', 'Unidade Sul'] };
   var DEFAULT_BOOKING = { data: '2026-11-25', hora: '16:00', unidade: 'Unidade Centro', municipio: 'Itajaí', motivo: 'Emissão de documento' };
 
   var P = (window.PROTO = {
@@ -262,15 +263,19 @@
   function fieldLabel(top, left, t) { return at(top, t, 'sub', 'left:' + left + 'px;white-space:nowrap'); }
   function formSheet() {
     var f = P.form, e = P.errors;
-    function opt(list, val) { return list.map(function (o) { return '<option' + (val === o ? ' selected' : '') + '>' + o + '</option>'; }).join(''); }
-    function sel(id, field, ph, list, top) {
-      return at(top, '<select class="inp' + (f[field] ? '' : ' ph') + (e[field] ? ' err' : '') + '" data-field="' + field + '" data-id="' + id + '"><option value="" disabled' + (f[field] ? '' : ' selected') + ' hidden>' + (e[field] || ph) + '</option>' + opt(list, f[field]) + '</select>', 'fld');
+    // campo de seleção com digitação: placeholder fixo "Selecione"; a lista filtra enquanto a pessoa digita
+    function cb(id, field, top) {
+      var v = f[field] || '';
+      var items = LISTS[field].map(function (o) {
+        return '<div class="o' + (v === o ? ' sel' : '') + '" data-ui="cbpick:' + field + ':' + esc(o) + '" data-id="opcao_' + field + '_' + o.toLowerCase().replace(/[^a-z0-9]+/g, '_') + '">' + esc(o) + '</div>';
+      }).join('');
+      return at(top, '<div class="cb" data-cb="' + field + '"><input class="inp' + (e[field] ? ' err' : '') + '" data-field="' + field + '" data-id="' + id + '" placeholder="' + esc(e[field] || 'Selecione') + '" autocomplete="off" value="' + esc(v) + '"><div class="opts cb-list">' + items + '<div class="o off cb-none" style="display:none">Nenhuma opção</div></div></div>', 'fld');
     }
     var html =
       fieldLabel(42, 34, 'Município') +
-      at(65, '<input class="inp' + (e.municipio ? ' err' : '') + '" data-field="municipio" data-id="campo_municipio" list="munis" placeholder="' + (e.municipio || 'Itajaí') + '" autocomplete="off" value="' + esc(f.municipio) + '"><datalist id="munis"><option>Itajaí</option><option>Goiânia</option><option>Jataí</option><option>São Paulo</option><option>Rio de Janeiro</option></datalist>', 'fld') +
-      fieldLabel(114, 34, 'Motivo') + sel('campo_motivo', 'motivo', 'Emissão de documento', ['Emissão de documento', 'Regularização', 'Alistamento'], 137) +
-      fieldLabel(185, 34, 'Unidade') + sel('campo_unidade', 'unidade', 'Unidade Centro', ['Unidade Centro', 'Unidade Norte', 'Unidade Sul'], 208) +
+      cb('campo_municipio', 'municipio', 65) +
+      fieldLabel(114, 34, 'Motivo') + cb('campo_motivo', 'motivo', 137) +
+      fieldLabel(185, 34, 'Unidade') + cb('campo_unidade', 'unidade', 208) +
       fieldLabel(256, 34, 'Data') + fieldLabel(256, 183, 'Horários disponíveis') +
       at(280, '<div class="inp sm' + (e.data ? ' err' : '') + '" data-ui="pop:cal" data-id="campo_data"><span class="ic"></span><span' + (f.data ? '' : ' class="dis"') + '>' + (f.data ? br(f.data) : (e.data || '00/00/0000')) + '</span></div>', '', 'left:31px;width:142px') +
       at(280, '<div class="inp sm' + (e.hora ? ' err' : '') + '" data-ui="pop:slots" data-id="campo_horario"><span' + (f.hora ? '' : ' class="dis"') + ' style="white-space:nowrap">' + (f.hora || e.hora || 'Selecione o horário') + '</span></div>', '', 'left:183px;width:180px') +
@@ -445,6 +450,7 @@
 
   // ---------- ações internas (data-ui) ----------
   var UI = {
+    cbpick: function (arg) { var i = arg.indexOf(':'), k = arg.slice(0, i); P.form[k] = arg.slice(i + 1); delete P.errors[k]; return true; },
     pop: function (w) {
       if (w === 'close') { P.ui.pop = null; return true; }
       P.ui.pop = P.ui.pop === w ? null : w;
@@ -463,7 +469,11 @@
       var miss = [];
       P.errors = {};
       P.ui.pop = null;
-      Object.keys(msgs).forEach(function (k) { if (!f[k] || !String(f[k]).trim()) { P.errors[k] = msgs[k]; miss.push(k); } });
+      Object.keys(msgs).forEach(function (k) {
+        var vazio = !f[k] || !String(f[k]).trim();
+        var fora = !vazio && (k === 'motivo' || k === 'unidade') && LISTS[k].indexOf(f[k]) < 0;   // texto digitado que nao esta na lista
+        if (vazio || fora) { if (fora) f[k] = ''; P.errors[k] = msgs[k]; miss.push(k); }
+      });
       if (miss.length) { P.log('form_error', { note: 'faltou: ' + miss.join(',') }); return true; }
       P.booking = { data: f.data, hora: f.hora, unidade: f.unidade, municipio: f.municipio.trim(), motivo: f.motivo };
       P.form = {};
