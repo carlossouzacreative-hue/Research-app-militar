@@ -349,16 +349,19 @@
         '<h1>O Pix expirou de propósito</h1>' +
         '<p>Neste teste, o primeiro Pix dura poucos segundos para vermos como é retomar um pagamento que não deu certo. Em um aplicativo de verdade, o prazo seria de 30 minutos.</p>' +
         '<p class="info">Nenhuma cobrança foi feita.</p>' +
-        '<button class="btn disabled" data-flow data-act="pix-go" data-locked="1"><span class="dd"><i>.</i><i>.</i><i>.</i></span></button>'
+        '<button class="btn disabled" data-flow data-act="pix-go" data-locked="1">Continuar (5)</button>'
     );
     curLabel = 'Lendo o aviso do Pix (depois da B1)';
     log('pix_reveal_shown', ctx());
     beat();
-    setTimeout(function () {
+    var left = 5, tm = setInterval(function () {
       var b = app.querySelector('[data-act="pix-go"]');
-      if (!b) return;
+      if (!b) return clearInterval(tm);
+      left -= 1;
+      if (left > 0) { b.textContent = 'Continuar (' + left + ')'; return; }
+      clearInterval(tm);
       b.removeAttribute('data-locked'); b.classList.remove('disabled'); b.textContent = 'Continuar';
-    }, 5000);
+    }, 1000);
   }
 
   function enterScenario(sc) {
