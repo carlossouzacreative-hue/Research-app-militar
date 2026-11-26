@@ -508,6 +508,26 @@
     var box = e.target.closest && e.target.closest('[data-cb]');
     if (box) setTimeout(function () { if (!box.contains(document.activeElement)) { box.classList.remove('open'); if (box.parentNode) box.parentNode.style.zIndex = ''; } }, 220);
   });
+  // teclado virtual: sobe o sheet para o campo e a lista continuarem visíveis
+  function liftSheet() {
+    var sh = app.querySelector('.sheet'); if (!sh) return;
+    var vv = window.visualViewport, a = document.activeElement;
+    var box = a && a.closest && a.closest('[data-cb]');
+    sh.style.translate = '';
+    if (!vv || !box || a.tagName !== 'INPUT') return;
+    var list = box.querySelector('.cb-list'), r = box.getBoundingClientRect();
+    var bottom = r.top + 43 + (list ? Math.min(list.scrollHeight, 164) : 0) + 12;
+    var d = Math.round(bottom - (vv.offsetTop + vv.height));
+    if (d <= 0) return;
+    d = Math.min(d, Math.max(0, sh.getBoundingClientRect().top - 8));
+    sh.style.transition = 'translate .2s ease'; sh.style.translate = '0 ' + (-d) + 'px';
+  }
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', liftSheet);
+    window.visualViewport.addEventListener('scroll', liftSheet);
+  }
+  app.addEventListener('focusin', function () { setTimeout(liftSheet, 320); });
+  app.addEventListener('focusout', function () { setTimeout(liftSheet, 260); });
   app.addEventListener('input', function (e) {
     var f = e.target.closest && e.target.closest('[data-field]');
     if (!f) return;
